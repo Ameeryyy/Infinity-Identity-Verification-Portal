@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Generating ID</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow: hidden; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .gen-panel { border: 1px solid var(--dim); padding: 50px 40px; width: 340px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; text-align: center; }
+        .gen-panel::before, .gen-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; pointer-events: none; }
+        .gen-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .gen-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        .auth-header h2 { margin: 0; font-size: 18px; letter-spacing: 6px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 10px 0 30px; font-size: 10px; letter-spacing: 3px; opacity: 0.5; text-transform: uppercase; }
+
+        .card-hologram { width: 140px; height: 90px; border: 1px dashed var(--fg); margin: 0 auto 30px; position: relative; animation: pulseHolo 2s infinite alternate; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .card-hologram::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: scanLine 2s linear infinite; }
+        @keyframes pulseHolo { 0% { box-shadow: 0 0 10px rgba(255,255,255,0.1); } 100% { box-shadow: 0 0 30px rgba(255,255,255,0.4); } }
+        @keyframes scanLine { 100% { left: 200%; } }
+
+        .percentage-display { font-size: 42px; font-weight: bold; letter-spacing: 5px; margin-bottom: 20px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        
+        .progress-container { width: 100%; height: 2px; background: rgba(255,255,255,0.1); margin-bottom: 20px; position: relative; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; background: var(--fg); box-shadow: 0 0 10px var(--fg); transition: width 0.1s linear; }
+
+        .status-text { font-size: 10px; letter-spacing: 3px; min-height: 20px; font-weight: bold; text-transform: uppercase; animation: blinkText 1.5s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.3; } }
+        
+        .log-stream { font-size: 8px; letter-spacing: 1px; opacity: 0.4; text-align: left; margin-top: 30px; height: 60px; overflow: hidden; position: relative; }
+        
+        .success-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--fg); color: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: 0.5s; z-index: 20; }
+        .success-overlay.show { opacity: 1; pointer-events: auto; }
+        .success-title { font-size: 24px; font-weight: bold; letter-spacing: 8px; margin-bottom: 10px; }
+        .success-sub { font-size: 10px; letter-spacing: 4px; }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="gen-panel">
+        <div class="auth-header">
+            <h2>Identity Minting</h2>
+            <p>Creating Digital Card</p>
+        </div>
+
+        <div class="card-hologram">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="var(--dim)"><path d="M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.89,22 2,21.1 2,20V4C2,2.89 2.89,2 4,2M11,15H13V17H11V15M11,7H13V13H11V7Z"/></svg>
+        </div>
+
+        <div class="percentage-display" id="percentText">0%</div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="status-text" id="statusMsg">ALLOCATING NODE ID...</div>
+
+        <div class="log-stream" id="logStream"></div>
+        
+        <div class="success-overlay" id="successScreen">
+            <div class="success-title">MINTED</div>
+            <div class="success-sub">INITIALIZING CARD VIEW</div>
+        </div>
+    </div>
+
+    <script>
+        const percentText = document.getElementById('percentText');
+        const progressBar = document.getElementById('progressBar');
+        const statusMsg = document.getElementById('statusMsg');
+        const logStream = document.getElementById('logStream');
+        const successScreen = document.getElementById('successScreen');
+        
+        let progress = 0;
+
+        const msgs = [
+            { t: 10, txt: 'ASSIGNING INFINITY ID...' },
+            { t: 30, txt: 'EMBEDDING BIOMETRIC HASH...' },
+            { t: 50, GENERATING: 'GENERATING QR CODE...' },
+            { t: 70, txt: 'APPLYING DIGITAL SIGNATURE...' },
+            { t: 90, txt: 'FINALIZING CARD RENDER...' }
+        ];
+
+        function addLog(text) {
+            logStream.innerHTML = `> ${text}<br>` + logStream.innerHTML;
+        }
+
+        const interval = setInterval(() => {
+            progress += Math.random() * 2;
+            if(progress >= 100) progress = 100;
+            
+            percentText.innerText = Math.floor(progress) + '%';
+            progressBar.style.width = progress + '%';
+
+            let currentMsg = msgs.find(m => progress >= m.t && progress < m.t + 20);
+            if(currentMsg && statusMsg.innerText !== currentMsg.txt) {
+                statusMsg.innerText = currentMsg.txt || currentMsg.GENERATING;
+                addLog((currentMsg.txt || currentMsg.GENERATING).replace('...', ''));
+            }
+
+            if(progress === 100) {
+                clearInterval(interval);
+                statusMsg.innerText = 'CARD GENERATED.';
+                statusMsg.style.animation = 'none';
+                addLog('SECURE CARD MINTING SUCCESSFUL.');
+                
+                setTimeout(() => {
+                    successScreen.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = 'card.html';
+                    }, 1500);
+                }, 1000);
+            }
+        }, 60);
+    </script>
+</body>
+</html>

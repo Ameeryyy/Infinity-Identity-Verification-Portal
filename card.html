@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Digital Card</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow-x: hidden; padding: 20px; box-sizing: border-box; }
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .card-container { width: 100%; max-width: 400px; position: relative; z-index: 10; animation: fadeIn 0.8s ease-out; }
+
+        .id-card { background: rgba(10, 10, 10, 0.95); border: 1px solid var(--fg); box-shadow: 0 0 30px rgba(255,255,255,0.1), inset 0 0 20px rgba(255,255,255,0.05); border-radius: 12px; padding: 25px; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; backdrop-filter: blur(20px); }
+        .id-card::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transform: skewX(-20deg); animation: shine 6s infinite; pointer-events: none; z-index: 5; }
+        @keyframes shine { 0% { left: -100%; } 20% { left: 200%; } 100% { left: 200%; } }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--dim); padding-bottom: 15px; }
+        .brand { display: flex; flex-direction: column; }
+        .brand-title { font-size: 18px; font-weight: bold; letter-spacing: 5px; text-transform: uppercase; margin: 0; }
+        .brand-sub { font-size: 8px; letter-spacing: 4px; opacity: 0.6; text-transform: uppercase; margin-top: 5px; }
+        .node-badge { border: 1px solid var(--fg); padding: 5px 8px; font-size: 9px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+
+        .card-body { display: flex; gap: 20px; align-items: stretch; }
+        
+        .profile-pic { width: 100px; height: 130px; border: 1px solid var(--dim); position: relative; background: #111; display: flex; align-items: center; justify-content: center; }
+        .profile-pic img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%) contrast(120%); }
+        .profile-pic::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 1px solid var(--fg); pointer-events: none; opacity: 0.5; }
+
+        .info-grid { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .info-group { margin-bottom: 10px; }
+        .info-label { font-size: 8px; letter-spacing: 2px; opacity: 0.5; text-transform: uppercase; margin-bottom: 2px; }
+        .info-val { font-size: 14px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        .info-val.large { font-size: 18px; letter-spacing: 2px; }
+        .info-val.highlight { color: var(--fg); text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+
+        .card-footer { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--dim); padding-top: 15px; }
+        
+        .signature-box { width: 120px; height: 40px; border-bottom: 1px dashed var(--dim); display: flex; align-items: center; justify-content: center; position: relative; }
+        .signature-box img { max-width: 100%; max-height: 100%; filter: invert(1); opacity: 0.8; }
+        .signature-box::after { content: 'AUTHORIZED SIGNATURE'; position: absolute; bottom: -12px; font-size: 6px; letter-spacing: 1px; opacity: 0.5; }
+
+        .qr-box { width: 50px; height: 50px; border: 1px solid var(--fg); background: repeating-linear-gradient(45deg, var(--dim) 0, var(--dim) 4px, transparent 4px, transparent 8px); display: flex; align-items: center; justify-content: center; }
+        .qr-box svg { width: 30px; height: 30px; fill: var(--fg); }
+
+        .action-btns { width: 100%; max-width: 400px; display: flex; gap: 15px; margin-top: 30px; z-index: 10; animation: fadeIn 1s ease-out; }
+        .action-btn { flex: 1; padding: 15px; background: transparent; color: var(--fg); border: 1px solid var(--fg); font-family: inherit; font-size: 11px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .action-btn:hover { background: var(--fg); color: var(--bg); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .action-btn.primary { background: var(--fg); color: var(--bg); }
+        .action-btn.primary:hover { background: transparent; color: var(--fg); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="card-container">
+        <div class="id-card" id="identityCard">
+            <div class="card-header">
+                <div class="brand">
+                    <h2 class="brand-title">Infinity ID</h2>
+                    <div class="brand-sub">Global Citizen Ledger</div>
+                </div>
+                <div class="node-badge">PHASE-03</div>
+            </div>
+
+            <div class="card-body">
+                <div class="profile-pic">
+                    <img id="dispPhoto" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80" alt="Profile">
+                </div>
+                <div class="info-grid">
+                    <div class="info-group">
+                        <div class="info-label">Infinity Identification Number</div>
+                        <div class="info-val large highlight" id="dispId">INF-X982-CORE</div>
+                    </div>
+                    <div class="info-group">
+                        <div class="info-label">Full Legal Name</div>
+                        <div class="info-val" id="dispName">AL AMEER</div>
+                    </div>
+                    <div style="display: flex; gap: 20px;">
+                        <div class="info-group">
+                            <div class="info-label">Date of Birth</div>
+                            <div class="info-val" id="dispDob">19-09-2007</div>
+                        </div>
+                        <div class="info-group">
+                            <div class="info-label">Blood</div>
+                            <div class="info-val" id="dispBlood">O+</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <div class="signature-box">
+                    <img id="dispSig" src="" alt="" style="display: none;">
+                    <div id="sigPlaceholder" style="font-family: 'Brush Script MT', cursive; font-size: 18px;">Al Ameer</div>
+                </div>
+                <div class="qr-box">
+                    <svg viewBox="0 0 24 24"><path d="M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6Z"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-btns">
+        <button class="action-btn" onclick="window.location.href='home.html'">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 3L4 9v12h16V9l-8-6zm6 16h-3v-6H9v6H6v-9l6-4.5 6 4.5v9z"/></svg> Dashboard
+        </button>
+        <button class="action-btn primary" onclick="downloadCard()">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg> Save Digital
+        </button>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const s = typeof brain !== 'undefined' ? (brain.settings || {}) : {};
+            
+            // Update Name
+            if(s.currentName) document.getElementById('dispName').innerText = s.currentName;
+            // Update DOB
+            if(s.dateOfBirth) document.getElementById('dispDob').innerText = s.dateOfBirth;
+            // Update Blood Group
+            if(s.bloodGroup) document.getElementById('dispBlood').innerText = s.bloodGroup;
+            
+            // Update Profile Photo if available
+            if(s.profilePicturePrimary) {
+                document.getElementById('dispPhoto').src = s.profilePicturePrimary;
+            }
+
+            // Update Signature if available
+            if(s.signatures && s.signatures.userSigData) {
+                document.getElementById('dispSig').src = s.signatures.userSigData;
+                document.getElementById('dispSig').style.display = 'block';
+                document.getElementById('sigPlaceholder').style.display = 'none';
+            }
+        });
+
+        function downloadCard() {
+            const btn = document.querySelector('.action-btn.primary');
+            let oldText = btn.innerHTML;
+            btn.innerHTML = "SAVING...";
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.innerHTML = "✔ SAVED TO VAULT";
+                setTimeout(() => {
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
+                }, 2000);
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

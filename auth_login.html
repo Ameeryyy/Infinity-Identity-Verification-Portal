@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Auth Node</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow: hidden; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .hud-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; display: none; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        @media (min-width: 1024px) { .hud-container { display: flex; } }
+        
+        .hud-left { width: 250px; font-size: 10px; line-height: 1.8; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px; position: relative; overflow: hidden; height: 80%; margin-top: auto; margin-bottom: auto; }
+        .hud-left::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, var(--bg)); }
+        .terminal-stream { animation: scrollUp 20s linear infinite; }
+        @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+        
+        .hud-right { width: 200px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; margin-top: auto; margin-bottom: auto; }
+        .status-block { text-align: right; }
+        .status-title { font-size: 10px; letter-spacing: 4px; opacity: 0.4; margin-bottom: 10px; text-transform: uppercase; }
+        .status-value { font-size: 14px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
+        .status-value.blink { animation: blinkText 2s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
+        
+        .visual-element { width: 80px; height: 80px; border: 1px solid var(--dim); position: relative; display: flex; justify-content: center; align-items: center; }
+        .visual-element::before { content: ''; width: 40px; height: 40px; border: 1px solid var(--fg); border-radius: 50%; animation: pulse 3s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.2; } 100% { transform: scale(1.2); opacity: 0.8; } }
+
+        .auth-panel { border: 1px solid var(--dim); padding: 50px 40px; width: 340px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; }
+        .auth-panel::before, .auth-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; }
+        .auth-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .auth-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+        
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: var(--highlight); opacity: 0.5; box-shadow: 0 0 10px var(--fg); animation: scan 4s cubic-bezier(0.4, 0, 0.2, 1) infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 0.6; } 50% { opacity: 0.8; } 90% { opacity: 0.6; } 100% { top: 100%; opacity: 0; } }
+        
+        .auth-header { text-align: center; margin-bottom: 45px; }
+        .auth-header h2 { margin: 0; font-size: 22px; letter-spacing: 8px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 12px 0 0; font-size: 11px; letter-spacing: 4px; opacity: 0.4; text-transform: uppercase; }
+        
+        .input-box { margin-bottom: 35px; position: relative; text-align: left; }
+        .input-box input { width: 100%; padding: 12px 0 5px 0; background: transparent; border: none; border-bottom: 1px solid var(--dim); color: var(--fg); font-family: inherit; font-size: 14px; letter-spacing: 2px; box-sizing: border-box; transition: 0.3s; outline: none; }
+        .input-box input:focus { border-bottom-color: var(--fg); }
+        .input-box label { position: absolute; top: -10px; left: 0; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; pointer-events: none; }
+        
+        button { width: 100%; padding: 16px; background: var(--fg); color: var(--bg); border: none; font-family: inherit; font-size: 13px; font-weight: bold; letter-spacing: 5px; text-transform: uppercase; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        button:hover { background: #cccccc; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+
+        .custom-tooltip { position: absolute; background: var(--fg); color: var(--bg); padding: 10px 15px; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; pointer-events: none; opacity: 0; border-radius: 2px; }
+        .custom-tooltip .icon { background: var(--bg); color: var(--fg); width: 16px; height: 16px; display: flex; justify-content: center; align-items: center; font-size: 12px; border-radius: 50%; }
+        .custom-tooltip::after { content: ''; position: absolute; bottom: 100%; left: 20px; border-width: 8px; border-style: solid; border-color: transparent transparent var(--fg) transparent; }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    
+    <div class="hud-container">
+        <div class="hud-left">
+            <div class="terminal-stream">
+                [SYS] INITIATING SECURE HANDSHAKE...<br><br>
+                [SYS] CONNECTING TO MAINFRAME...<br><br>
+                [OK] CONNECTION ESTABLISHED<br><br>
+                [AUTH] VERIFYING NODE CREDENTIALS<br><br>
+                [AUTH] CHECKING ENCRYPTION KEYS...<br><br>
+                [OK] ENCRYPTION PROTOCOL ACTIVE<br><br>
+                [SYS] WAITING FOR USER INPUT...<br><br>
+                [MEM] ALLOCATING SECURE MEMORY...<br><br>
+                [NET] UPLINK STATUS: STABLE<br><br>
+                [SYS] MONITORING PORT 8080...<br><br>
+                [AUTH] READY FOR INFINITY ID.<br><br>
+                [SYS] BACKGROUND PROCESSES NORMAL.
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="status-block">
+                <div class="status-title">Node Target</div>
+                <div class="status-value">PHASE-03</div>
+            </div>
+            <div class="visual-element"></div>
+            <div class="status-block">
+                <div class="status-title">System Status</div>
+                <div class="status-value blink">AWAITING</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="scan-line"></div>
+        <div class="auth-header">
+            <h2>Secure Login</h2>
+            <p>Official Access Only</p>
+        </div>
+        <form id="loginForm" novalidate>
+            <div class="input-box">
+                <label>Infinity ID</label>
+                <input type="text" id="adminId" required autocomplete="off">
+            </div>
+            <div class="input-box">
+                <label>Security Key</label>
+                <input type="password" id="adminKey" required>
+            </div>
+            <button type="submit">Authenticate</button>
+        </form>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        const form = document.getElementById('loginForm');
+        let tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.innerHTML = '<span class="icon">!</span><span id="tooltip-msg"></span>';
+        document.body.appendChild(tooltip);
+
+        const showTooltip = (el, msg) => {
+            document.getElementById('tooltip-msg').innerText = msg;
+            const rect = el.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.bottom + 10) + 'px';
+            tooltip.style.opacity = '1';
+            setTimeout(() => tooltip.style.opacity = '0', 3000);
+        };
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const idInput = document.getElementById('adminId');
+            const keyInput = document.getElementById('adminKey');
+            
+            if (!idInput.value) {
+                showTooltip(idInput, 'Please fill in this field.');
+                return;
+            }
+            if (!keyInput.value) {
+                showTooltip(keyInput, 'Please fill in this field.');
+                return;
+            }
+            if (idInput.value.length >= 4 && keyInput.value.length >= 4) {
+                window.location.href = 'search_node.html';
+            } else {
+                showTooltip(idInput, 'Invalid Credentials.');
+            }
+        });
+    </script>
+</body>
+</html>

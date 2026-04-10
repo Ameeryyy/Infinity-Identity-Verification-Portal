@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Citizen Unlock</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow: hidden; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .hud-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; display: none; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        @media (min-width: 1024px) { .hud-container { display: flex; } }
+        
+        .hud-left { width: 250px; font-size: 10px; line-height: 1.8; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px; position: relative; overflow: hidden; height: 80%; margin-top: auto; margin-bottom: auto; }
+        .hud-left::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, var(--bg)); }
+        .terminal-stream { animation: scrollUp 20s linear infinite; }
+        @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+        
+        .hud-right { width: 200px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; margin-top: auto; margin-bottom: auto; }
+        .status-block { text-align: right; }
+        .status-title { font-size: 10px; letter-spacing: 4px; opacity: 0.4; margin-bottom: 10px; text-transform: uppercase; }
+        .status-value { font-size: 14px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
+        .status-value.blink { animation: blinkText 2s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
+        
+        .visual-element { width: 80px; height: 80px; border: 1px solid var(--dim); position: relative; display: flex; justify-content: center; align-items: center; }
+        .visual-element::before { content: ''; width: 40px; height: 40px; border: 1px solid var(--fg); border-radius: 50%; animation: pulse 3s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.2; } 100% { transform: scale(1.2); opacity: 0.8; } }
+
+        .auth-panel { border: 1px solid var(--dim); padding: 45px 40px; width: 340px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; transition: 0.3s; }
+        .auth-panel::before, .auth-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; }
+        .auth-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .auth-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+        
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: var(--highlight); opacity: 0.5; box-shadow: 0 0 10px var(--fg); animation: scan 4s cubic-bezier(0.4, 0, 0.2, 1) infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 0.6; } 50% { opacity: 0.8; } 90% { opacity: 0.6; } 100% { top: 100%; opacity: 0; } }
+        
+        .auth-header { text-align: center; margin-bottom: 35px; }
+        .auth-header h2 { margin: 0; font-size: 20px; letter-spacing: 6px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 10px 0 0; font-size: 10px; letter-spacing: 3px; opacity: 0.5; text-transform: uppercase; }
+        
+        .input-box { margin-bottom: 30px; position: relative; text-align: left; }
+        .input-box input { width: 100%; padding: 12px 0 5px 0; background: transparent; border: none; border-bottom: 1px solid var(--dim); color: var(--fg); font-family: inherit; font-size: 14px; letter-spacing: 2px; box-sizing: border-box; transition: 0.3s; outline: none; }
+        .input-box input:focus { border-bottom-color: var(--fg); }
+        .input-box label { position: absolute; top: -10px; left: 0; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; pointer-events: none; }
+        
+        button { width: 100%; padding: 15px; background: var(--fg); color: var(--bg); border: none; font-family: inherit; font-size: 12px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        button:hover { background: #cccccc; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        
+        .outline-btn { background: transparent; color: var(--fg); border: 1px solid var(--dim); margin-top: 15px; }
+        .outline-btn:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+        .pay-btn { background: transparent; color: var(--fg); border: 1px dashed var(--fg); margin-top: 15px; }
+        .pay-btn:hover { background: var(--fg); color: var(--bg); }
+
+        .link-text { display: block; text-align: center; margin-top: 20px; font-size: 10px; letter-spacing: 2px; color: var(--fg); opacity: 0.5; text-decoration: none; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .link-text:hover { opacity: 1; text-decoration: underline; }
+
+        .section { display: none; animation: fadeIn 0.4s ease-out; }
+        .section.active { display: block; }
+
+        .channel-selector { display: flex; gap: 10px; margin-bottom: 25px; }
+        .channel-btn { flex: 1; padding: 10px; font-size: 10px; background: transparent; border: 1px solid var(--dim); color: var(--fg); cursor: pointer; transition: 0.3s; }
+        .channel-btn.active { border-color: var(--fg); background: rgba(255,255,255,0.1); }
+
+        .alert-box { padding: 10px; border: 1px solid var(--dim); background: rgba(255,255,255,0.05); font-size: 11px; text-align: center; letter-spacing: 2px; margin-bottom: 20px; display: none; }
+        
+        .view-pass-box { text-align: center; padding: 20px; border: 1px solid var(--fg); font-size: 16px; letter-spacing: 5px; margin-bottom: 20px; background: rgba(255,255,255,0.05); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .custom-tooltip { position: absolute; background: var(--fg); color: var(--bg); padding: 10px 15px; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; pointer-events: none; opacity: 0; border-radius: 2px; }
+        .custom-tooltip .icon { background: var(--bg); color: var(--fg); width: 16px; height: 16px; display: flex; justify-content: center; align-items: center; font-size: 12px; border-radius: 50%; }
+        .custom-tooltip::after { content: ''; position: absolute; bottom: 100%; left: 20px; border-width: 8px; border-style: solid; border-color: transparent transparent var(--fg) transparent; }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="hud-container">
+        <div class="hud-left">
+            <div class="terminal-stream">
+                [SYS] CITIZEN VAULT INITIATED...<br><br>
+                [SYS] SECURING CONNECTION...<br><br>
+                [OK] UPLINK ESTABLISHED<br><br>
+                [AUTH] AWAITING CITIZEN DATA<br><br>
+                [AUTH] VERIFYING BIOMETRIC ANCHORS...<br><br>
+                [OK] ENCRYPTION LAYER 3 ACTIVE<br><br>
+                [SYS] STANDBY FOR MASTER PASSWORD...<br><br>
+                [MEM] PREPARING IDENTITY VAULT...<br><br>
+                [NET] CONNECTION STABLE<br><br>
+                [SYS] MONITORING BACKGROUND THREADS...<br><br>
+                [AUTH] READY FOR DECRYPTION.<br><br>
+                [SYS] ALL SYSTEMS NOMINAL.
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="status-block">
+                <div class="status-title">Vault Target</div>
+                <div class="status-value">PHASE-03</div>
+            </div>
+            <div class="visual-element"></div>
+            <div class="status-block">
+                <div class="status-title">Vault Status</div>
+                <div class="status-value blink">LOCKED</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="scan-line"></div>
+        <div class="auth-header">
+            <h2>Citizen Unlock</h2>
+            <p>Identity Vault Access</p>
+        </div>
+
+        <div id="loginSection" class="section active">
+            <form id="unlockForm" novalidate>
+                <div class="input-box">
+                    <label>Full Legal Name</label>
+                    <input type="text" id="citizenName" required autocomplete="off" style="text-transform: uppercase;">
+                </div>
+                <div class="input-box">
+                    <label>Master Password</label>
+                    <input type="password" id="citizenKey" required>
+                </div>
+                <button type="submit">Unlock Vault</button>
+                <span class="link-text" onclick="showSection('otpRequestSection')">Forgot Password? / Recover</span>
+            </form>
+        </div>
+
+        <div id="otpRequestSection" class="section">
+            <div class="alert-box" id="otpMsg" style="display:block;">Select recovery channel</div>
+            <div class="channel-selector">
+                <button type="button" class="channel-btn active" onclick="selectChannel(this, 'SMS/WhatsApp')">SMS / WA</button>
+                <button type="button" class="channel-btn" onclick="selectChannel(this, 'Gmail')">GMAIL</button>
+            </div>
+            <button type="button" class="outline-btn" onclick="sendOtp()">Send OTP</button>
+            <span class="link-text" onclick="showSection('loginSection')">&larr; Back to Login</span>
+        </div>
+
+        <div id="otpVerifySection" class="section">
+            <div class="alert-box" style="display:block;">Enter the 6-digit code sent to you</div>
+            <div class="input-box">
+                <label>Verification Code</label>
+                <input type="text" id="otpInput" maxlength="6" required autocomplete="off" style="letter-spacing: 10px; text-align: center; font-size: 18px;">
+            </div>
+            <button type="button" onclick="verifyOtp()">Verify Identity</button>
+            <span class="link-text" onclick="showSection('otpRequestSection')">&larr; Resend OTP</span>
+        </div>
+
+        <div id="recoveryActionsSection" class="section">
+            <div class="alert-box" style="display:block; border-color: var(--fg);">Identity Verified</div>
+            <button type="button" class="outline-btn" onclick="showSection('viewPassSection')">View Password (Free)</button>
+            <button type="button" class="pay-btn" onclick="showSection('resetPassSection')">Reset Password (Pay ₹5)</button>
+            <span class="link-text" onclick="showSection('loginSection')">&larr; Back to Login</span>
+        </div>
+
+        <div id="viewPassSection" class="section">
+            <div class="alert-box" style="display:block;">Your Master Password is:</div>
+            <div class="view-pass-box" id="revealedPass">INF-X982-CORE</div>
+            <button type="button" onclick="showSection('loginSection')">Proceed to Login</button>
+        </div>
+
+        <div id="resetPassSection" class="section">
+            <div class="alert-box" style="display:block; border-style: dashed;">Payment of ₹5 required to modify core data.</div>
+            <div class="input-box">
+                <label>New Master Password</label>
+                <input type="password" id="newPass1">
+            </div>
+            <div class="input-box">
+                <label>Confirm Password</label>
+                <input type="password" id="newPass2">
+            </div>
+            <button type="button" onclick="processPayment()">Pay ₹5 & Reset</button>
+            <span class="link-text" onclick="showSection('recoveryActionsSection')">&larr; Cancel</span>
+        </div>
+
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        let tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.innerHTML = '<span class="icon">!</span><span id="tooltip-msg"></span>';
+        document.body.appendChild(tooltip);
+
+        const showTooltip = (el, msg) => {
+            document.getElementById('tooltip-msg').innerText = msg;
+            const rect = el.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.bottom + 10) + 'px';
+            tooltip.style.opacity = '1';
+            setTimeout(() => tooltip.style.opacity = '0', 3000);
+        };
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function selectChannel(btn, type) {
+            document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function sendOtp() {
+            let msg = document.getElementById('otpMsg');
+            msg.innerText = "SENDING...";
+            setTimeout(() => {
+                showSection('otpVerifySection');
+                msg.innerText = "Select recovery channel";
+            }, 1000);
+        }
+
+        function verifyOtp() {
+            let input = document.getElementById('otpInput');
+            if(input.value.length === 6) {
+                showSection('recoveryActionsSection');
+            } else {
+                showTooltip(input, 'Enter a valid 6-digit OTP');
+            }
+        }
+
+        function processPayment() {
+            let p1 = document.getElementById('newPass1');
+            let p2 = document.getElementById('newPass2');
+            
+            if(!p1.value || !p2.value) {
+                showTooltip(p1, 'Fill all fields');
+                return;
+            }
+            if(p1.value !== p2.value) {
+                showTooltip(p2, 'Passwords do not match');
+                return;
+            }
+            
+            let btn = event.target;
+            btn.innerText = "PROCESSING PAYMENT...";
+            btn.style.opacity = "0.5";
+            
+            setTimeout(() => {
+                alert("PAYMENT SUCCESS", "₹5 has been deducted. Master password updated successfully.");
+                setTimeout(() => {
+                    showSection('loginSection');
+                }, 1000);
+            }, 2000);
+        }
+
+        document.getElementById('unlockForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('citizenName');
+            const keyInput = document.getElementById('citizenKey');
+            
+            if (!nameInput.value) {
+                showTooltip(nameInput, 'Enter full legal name.');
+                return;
+            }
+            if (!keyInput.value) {
+                showTooltip(keyInput, 'Enter Master Password.');
+                return;
+            }
+            
+            if (nameInput.value.length >= 3 && keyInput.value.length >= 4) {
+                window.location.href = 'biometric_lab.html';
+            } else {
+                showTooltip(nameInput, 'Invalid Verification Data.');
+            }
+        });
+    </script>
+</body>
+</html>

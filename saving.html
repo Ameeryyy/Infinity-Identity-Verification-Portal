@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Data Anchoring</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow: hidden; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .hud-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; display: none; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        @media (min-width: 1024px) { .hud-container { display: flex; } }
+        
+        .hud-left { width: 250px; font-size: 10px; line-height: 1.8; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px; position: relative; overflow: hidden; height: 80%; margin-top: auto; margin-bottom: auto; }
+        .hud-left::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, var(--bg)); }
+        .terminal-stream { animation: scrollUp 20s linear infinite; }
+        @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+        
+        .hud-right { width: 200px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; margin-top: auto; margin-bottom: auto; }
+        .status-block { text-align: right; }
+        .status-title { font-size: 10px; letter-spacing: 4px; opacity: 0.4; margin-bottom: 10px; text-transform: uppercase; }
+        .status-value { font-size: 14px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
+        .status-value.blink { animation: blinkText 2s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
+
+        .auth-panel { border: 1px solid var(--dim); padding: 40px; width: 340px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; text-align: center; }
+        .auth-panel::before, .auth-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; pointer-events: none; }
+        .auth-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .auth-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        .auth-header h2 { margin: 0; font-size: 18px; letter-spacing: 6px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 10px 0 25px; font-size: 10px; letter-spacing: 3px; opacity: 0.5; text-transform: uppercase; }
+
+        .percentage-display { font-size: 42px; font-weight: bold; letter-spacing: 5px; margin-bottom: 20px; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        
+        .progress-container { width: 100%; height: 4px; background: rgba(255,255,255,0.1); margin-bottom: 25px; position: relative; overflow: hidden; border: 1px solid var(--dim); }
+        .progress-bar { height: 100%; width: 0%; background: var(--fg); box-shadow: 0 0 10px var(--fg); transition: width 0.1s linear; }
+
+        .checklist { text-align: left; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; line-height: 1.8; opacity: 0.8; }
+        .check-item { display: flex; justify-content: space-between; opacity: 0.3; transition: 0.3s; margin-bottom: 6px; }
+        .check-item.active { opacity: 1; font-weight: bold; color: var(--highlight); }
+        .check-item.done { opacity: 1; }
+        .check-item.done::after { content: '[ SECURED ]'; }
+        .check-item.active::after { content: '[ ENCRYPTING ]'; animation: blinkText 1s infinite; }
+        .check-item.pending::after { content: '[ WAITING ]'; }
+
+        .status-text { font-size: 10px; letter-spacing: 3px; min-height: 20px; font-weight: bold; text-transform: uppercase; }
+        
+        .success-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--fg); color: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: 0.5s; z-index: 20; }
+        .success-overlay.show { opacity: 1; pointer-events: auto; }
+        .success-title { font-size: 24px; font-weight: bold; letter-spacing: 8px; margin-bottom: 10px; }
+        .success-sub { font-size: 10px; letter-spacing: 4px; }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="hud-container">
+        <div class="hud-left">
+            <div class="terminal-stream" id="termStream">
+                [SYS] COMPILING COMPLETE LEDGER...<br><br>
+                [SYS] INITIATING 256-BIT ENCRYPTION...<br><br>
+                [NET] OPENING SECURE VAULT...
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="status-block">
+                <div class="status-title">Vault Target</div>
+                <div class="status-value">NODE-PHASE-03</div>
+            </div>
+            <div class="status-block">
+                <div class="status-title">System Status</div>
+                <div class="status-value blink">ANCHORING</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-header">
+            <h2>Data Ledger</h2>
+            <p>Compiling Final Node</p>
+        </div>
+
+        <div class="percentage-display" id="percentText">0%</div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="checklist" id="checklist">
+            <div class="check-item pending" id="chk-face"><span>Facial Mesh</span></div>
+            <div class="check-item pending" id="chk-fingers"><span>4-Fingers Scan</span></div>
+            <div class="check-item pending" id="chk-thumbs"><span>Dual Thumb Scan</span></div>
+            <div class="check-item pending" id="chk-palm"><span>Hand Palm Network</span></div>
+            <div class="check-item pending" id="chk-iris"><span>Retinal Iris Map</span></div>
+            <div class="check-item pending" id="chk-sig"><span>Digital Signature</span></div>
+            <div class="check-item pending" id="chk-govt"><span>Govt UID Anchor</span></div>
+        </div>
+
+        <div class="status-text" id="statusMsg">INITIALIZING ENCRYPTION...</div>
+        
+        <div class="success-overlay" id="successScreen">
+            <div class="success-title">ANCHORED</div>
+            <div class="success-sub">ALL DATA SECURED IN VAULT</div>
+        </div>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        const percentText = document.getElementById('percentText');
+        const progressBar = document.getElementById('progressBar');
+        const statusMsg = document.getElementById('statusMsg');
+        const termStream = document.getElementById('termStream');
+        const successScreen = document.getElementById('successScreen');
+        
+        let progress = 0;
+        
+        // Divided into 7 steps
+        const phases = [
+            { threshold: 14, id: 'chk-face', msg: 'ENCRYPTING FACIAL DATA...', term: 'WRITING FACIAL MESH TO LEDGER...' },
+            { threshold: 28, id: 'chk-fingers', msg: 'SECURING MINUTIAE POINTS...', term: 'ENCRYPTING FINGERPRINT DATA...' },
+            { threshold: 42, id: 'chk-thumbs', msg: 'ANCHORING THUMB GEOMETRY...', term: 'WRITING THUMB HASH TO BLOCK...' },
+            { threshold: 56, id: 'chk-palm', msg: 'COMPILING VASCULAR MAP...', term: 'SECURING PALM VEIN NETWORK...' },
+            { threshold: 70, id: 'chk-iris', msg: 'FINALIZING RETINAL HASH...', term: 'LOCKING IRIS BIOMETRICS...' },
+            { threshold: 84, id: 'chk-sig', msg: 'SECURING STROKE VECTORS...', term: 'ENCRYPTING DIGITAL SIGNATURE...' },
+            { threshold: 95, id: 'chk-govt', msg: 'VERIFYING UID LINK...', term: 'ANCHORING GOVT ID TO BLOCKCHAIN...' }
+        ];
+
+        let currentPhase = 0;
+
+        function updateTerminal(text) {
+            termStream.innerHTML += `<br><br>[SYS] ${text}`;
+        }
+
+        function setItemState(id, state) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.className = `check-item ${state}`;
+            }
+        }
+
+        const interval = setInterval(() => {
+            // Slower progress to allow reading all 7 items
+            progress += Math.random() * 1.5; 
+            if(progress >= 100) progress = 100;
+            
+            percentText.innerText = Math.floor(progress) + '%';
+            progressBar.style.width = progress + '%';
+
+            if(currentPhase < phases.length && progress >= phases[currentPhase].threshold) {
+                if(currentPhase > 0) {
+                    setItemState(phases[currentPhase - 1].id, 'done');
+                }
+                setItemState(phases[currentPhase].id, 'active');
+                statusMsg.innerText = phases[currentPhase].msg;
+                updateTerminal(phases[currentPhase].term);
+                currentPhase++;
+            }
+
+            if(progress === 100) {
+                clearInterval(interval);
+                setItemState(phases[phases.length - 1].id, 'done');
+                statusMsg.innerText = 'ANCHORING COMPLETE.';
+                updateTerminal('ALL DATA SECURELY ANCHORED.<br><br>[SYS] REDIRECTING TO FINAL REVIEW...');
+                
+                setTimeout(() => {
+                    successScreen.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = 'edit.html';
+                    }, 1500);
+                }, 800);
+            }
+        }, 80);
+    </script>
+</body>
+</html>

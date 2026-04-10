@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Secure Payment</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); --success: #00ff00; }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow-x: hidden; position: relative; padding: 20px 0; box-sizing: border-box; }
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .hud-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; display: none; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        @media (min-width: 1024px) { .hud-container { display: flex; } }
+        
+        .hud-left { width: 250px; font-size: 10px; line-height: 1.8; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px; position: relative; overflow: hidden; height: 80%; margin-top: auto; margin-bottom: auto; }
+        .hud-left::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, var(--bg)); }
+        
+        .hud-right { width: 200px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; margin-top: auto; margin-bottom: auto; }
+        .status-block { text-align: right; }
+        .status-title { font-size: 10px; letter-spacing: 4px; opacity: 0.4; margin-bottom: 10px; text-transform: uppercase; }
+        .status-value { font-size: 14px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
+        .status-value.blink { animation: blinkText 2s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
+
+        .auth-panel { border: 1px solid var(--dim); padding: 40px 30px; width: 90%; max-width: 450px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; margin: 20px auto; }
+        .auth-panel::before, .auth-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; pointer-events: none; }
+        .auth-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .auth-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        .auth-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid var(--dim); padding-bottom: 20px; }
+        .auth-header h2 { margin: 0; font-size: 20px; letter-spacing: 6px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 10px 0 0; font-size: 10px; letter-spacing: 3px; opacity: 0.5; text-transform: uppercase; }
+
+        /* INVOICE SECTION */
+        .invoice-box { margin-bottom: 25px; }
+        .inv-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+        .inv-item.paid { opacity: 0.6; }
+        .inv-item.paid .amt { color: var(--success); font-weight: bold; }
+        .inv-item.pending { font-weight: bold; }
+        .inv-item.pending .amt { color: var(--fg); }
+        .inv-item.optional { opacity: 0.4; transition: 0.3s; }
+        .inv-item.optional.active { opacity: 1; font-weight: bold; }
+
+        /* CARD SELECTION */
+        .card-options { display: flex; gap: 15px; margin-bottom: 25px; }
+        .option-box { flex: 1; border: 1px solid var(--dim); padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; background: rgba(255,255,255,0.02); }
+        .option-box.active { border-color: var(--fg); background: var(--fg); color: var(--bg); }
+        .opt-title { font-size: 12px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+        .opt-desc { font-size: 8px; letter-spacing: 1px; opacity: 0.7; }
+        .sec-badge { position: absolute; top: -8px; right: -5px; background: var(--bg); color: var(--fg); border: 1px solid var(--fg); font-size: 7px; padding: 2px 4px; font-weight: bold; }
+        .option-box.active .sec-badge { background: var(--fg); color: var(--bg); border-color: var(--bg); }
+
+        /* PAYMENT ACTIONS */
+        .payment-area { display: flex; flex-direction: column; align-items: center; border: 1px solid var(--dim); padding: 25px; background: #0a0a0a; margin-bottom: 25px; }
+        .total-amt { font-size: 24px; font-weight: bold; letter-spacing: 4px; margin-bottom: 20px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        
+        .qr-placeholder { width: 120px; height: 120px; border: 2px solid var(--fg); background: repeating-linear-gradient(45deg, var(--dim) 0, var(--dim) 10px, transparent 10px, transparent 20px); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; position: relative; }
+        .qr-placeholder::after { content: 'SCAN TO PAY'; background: var(--bg); padding: 5px; font-size: 10px; font-weight: bold; letter-spacing: 2px; }
+
+        .link-btn { background: transparent; border: 1px dashed var(--fg); color: var(--fg); padding: 10px 15px; font-size: 9px; cursor: pointer; font-family: inherit; letter-spacing: 2px; text-transform: uppercase; transition: 0.3s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .link-btn:hover { background: rgba(255,255,255,0.1); }
+        .link-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        button.main-btn { width: 100%; padding: 18px; background: var(--fg); color: var(--bg); border: none; font-family: inherit; font-size: 14px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        button.main-btn:hover:not(:disabled) { background: #cccccc; box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+        button.main-btn:disabled { background: var(--dim); color: var(--fg); cursor: not-allowed; opacity: 0.5; }
+
+        .custom-tooltip { position: absolute; background: var(--fg); color: var(--bg); padding: 10px 15px; font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; pointer-events: none; opacity: 0; }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="hud-container">
+        <div class="hud-left">
+            <div class="terminal-stream">
+                [SYS] PAYMENT GATEWAY INITIATED...<br><br>
+                [SYS] RETRIEVING LEDGER HISTORY...<br><br>
+                [OK] PREVIOUS TRANSACTIONS VERIFIED<br><br>
+                [AUTH] AWAITING FINAL SETTLEMENT...
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="status-block">
+                <div class="status-title">Vault Target</div>
+                <div class="status-value">PHASE-03</div>
+            </div>
+            <div class="status-block">
+                <div class="status-title">Gateway Status</div>
+                <div class="status-value blink">AWAITING FUNDS</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="auth-header">
+            <h2>Issuance Gateway</h2>
+            <p>Settle Ledger to Unlock Vault</p>
+        </div>
+
+        <div class="invoice-box">
+            <div class="inv-item paid">
+                <span>Node Registration</span>
+                <span class="amt">₹25 [ PAID ✔ ]</span>
+            </div>
+            <div class="inv-item paid">
+                <span>Slot Allocation</span>
+                <span class="amt">₹50 [ PAID ✔ ]</span>
+            </div>
+            <div class="inv-item pending">
+                <span>Digital Identity Vault</span>
+                <span class="amt">₹100 [ DUE ]</span>
+            </div>
+            <div class="inv-item optional" id="physInvoice">
+                <span>Secure Physical Box</span>
+                <span class="amt">+₹150 [ OPTIONAL ]</span>
+            </div>
+        </div>
+
+        <div class="card-options">
+            <div class="option-box active" id="optDigital" onclick="selectPlan('digital')">
+                <div class="opt-title">Digital Only</div>
+                <div class="opt-desc">Instant Access</div>
+            </div>
+            <div class="option-box" id="optPhysical" onclick="selectPlan('physical')">
+                <div class="sec-badge">₹500 VALUE</div>
+                <div class="opt-title">Physical Box</div>
+                <div class="opt-desc">High-Security Card</div>
+            </div>
+        </div>
+
+        <div class="payment-area">
+            <div class="total-amt" id="totalAmount">TOTAL: ₹100</div>
+            <div class="qr-placeholder"></div>
+            <button class="link-btn" onclick="sendLink(this)">
+                <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C10.3,22 8.7,21.58 7.33,20.88L2,22L3.13,16.73C2.4,15.36 2,13.73 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12C4,13.72 4.54,15.31 5.46,16.61L6.34,15.73C5.5,14.65 5,13.36 5,12A7,7 0 0,1 12,5A7,7 0 0,1 19,12A7,7 0 0,1 12,19C10.64,19 9.35,18.5 8.27,17.66L7.39,18.54C8.69,19.46 10.28,20 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/></svg>
+                Send Link to ******4829
+            </button>
+        </div>
+
+        <button class="main-btn" id="confirmBtn" onclick="processPayment()">Complete Secure Payment</button>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        let tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        document.body.appendChild(tooltip);
+
+        const showTooltip = (el, msg) => {
+            tooltip.innerText = msg;
+            const rect = el.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.bottom + 10) + 'px';
+            tooltip.style.opacity = '1';
+            setTimeout(() => tooltip.style.opacity = '0', 3000);
+        };
+
+        let isPhysical = false;
+
+        function selectPlan(type) {
+            if(type === 'digital') {
+                isPhysical = false;
+                document.getElementById('optDigital').classList.add('active');
+                document.getElementById('optPhysical').classList.remove('active');
+                document.getElementById('physInvoice').classList.remove('active');
+                document.getElementById('totalAmount').innerText = "TOTAL: ₹100";
+            } else {
+                isPhysical = true;
+                document.getElementById('optPhysical').classList.add('active');
+                document.getElementById('optDigital').classList.remove('active');
+                document.getElementById('physInvoice').classList.add('active');
+                document.getElementById('totalAmount').innerText = "TOTAL: ₹250";
+            }
+        }
+
+        function sendLink(btn) {
+            btn.innerText = "SENDING SECURE LINK...";
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerHTML = "✔ LINK SENT TO DEVICE";
+                btn.style.borderColor = "var(--success)";
+                btn.style.color = "var(--success)";
+            }, 1500);
+        }
+
+        function processPayment() {
+            const btn = document.getElementById('confirmBtn');
+            btn.innerText = "PROCESSING TRANSACTION...";
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.innerText = "PAYMENT SUCCESSFUL";
+                btn.style.background = "var(--success)";
+                btn.style.color = "var(--bg)";
+                document.querySelector('.status-value.blink').innerText = "FUNDS SECURED";
+                document.querySelector('.status-value.blink').classList.remove('blink');
+                
+                setTimeout(() => {
+                    window.location.href = 'generating.html';
+                }, 1500);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Signature & Aadhaar Anchor</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow: hidden; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .hud-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; display: none; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        @media (min-width: 1024px) { .hud-container { display: flex; } }
+        
+        .hud-left { width: 250px; font-size: 10px; line-height: 1.8; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px; position: relative; overflow: hidden; height: 80%; margin-top: auto; margin-bottom: auto; }
+        .hud-left::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, var(--bg)); }
+        .terminal-stream { animation: scrollUp 20s linear infinite; }
+        @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+        
+        .hud-right { width: 200px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; margin-top: auto; margin-bottom: auto; }
+        .status-block { text-align: right; }
+        .status-title { font-size: 10px; letter-spacing: 4px; opacity: 0.4; margin-bottom: 10px; text-transform: uppercase; }
+        .status-value { font-size: 14px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
+        .status-value.blink { animation: blinkText 2s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
+
+        .auth-panel { border: 1px solid var(--dim); padding: 40px 35px; width: 360px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; transition: 0.3s; max-height: 90vh; overflow-y: auto; }
+        .auth-panel::-webkit-scrollbar { width: 0; }
+        .auth-panel::before, .auth-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; pointer-events: none; }
+        .auth-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .auth-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+        
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: var(--highlight); opacity: 0.5; box-shadow: 0 0 10px var(--fg); animation: scan 4s cubic-bezier(0.4, 0, 0.2, 1) infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 0.6; } 50% { opacity: 0.8; } 90% { opacity: 0.6; } 100% { top: 100%; opacity: 0; } }
+        
+        .auth-header { text-align: center; margin-bottom: 30px; }
+        .auth-header h2 { margin: 0; font-size: 20px; letter-spacing: 6px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 10px 0 0; font-size: 10px; letter-spacing: 3px; opacity: 0.5; text-transform: uppercase; }
+        
+        .section { display: none; animation: fadeIn 0.4s ease-out; }
+        .section.active { display: block; }
+
+        /* Signature Styles matching Registration UI */
+        .canvas-container { border: 1px dashed var(--fg); background: rgba(255,255,255,0.02); position: relative; overflow: hidden; width: 100%; aspect-ratio: 2 / 1; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+        .placeholder-text { position: absolute; font-size: 10px; opacity: 0.3; font-weight: bold; pointer-events: none; letter-spacing: 2px; text-transform: uppercase; text-align: center; font-family: inherit; }
+        
+        .tools { display: flex; gap: 10px; margin-bottom: 25px; }
+        .btn-tool { flex: 1; padding: 12px; background: transparent; border: 1px solid var(--dim); color: var(--fg); font-size: 9px; font-weight: bold; cursor: pointer; transition: all 0.3s; opacity: 0.7; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; letter-spacing: 2px; }
+        .btn-tool:hover, .btn-tool:active { opacity: 1; background: rgba(255,255,255,0.1); border-color: var(--fg); }
+        .btn-tool svg { width: 14px; height: 14px; fill: currentColor; }
+
+        .input-box { margin-bottom: 30px; position: relative; text-align: left; }
+        .input-box input { width: 100%; padding: 12px 0 5px 0; background: transparent; border: none; border-bottom: 1px solid var(--dim); color: var(--fg); font-family: inherit; font-size: 16px; letter-spacing: 4px; box-sizing: border-box; transition: 0.3s; outline: none; text-align: center; }
+        .input-box input:focus { border-bottom-color: var(--fg); }
+        .input-box label { position: absolute; top: -15px; left: 0; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; pointer-events: none; width: 100%; text-align: center; }
+        
+        .input-box.phone-box input { font-size: 14px; letter-spacing: 3px; }
+        .input-box.otp-box input { font-size: 20px; letter-spacing: 12px; font-weight: bold; }
+
+        button.main-btn { width: 100%; padding: 15px; background: var(--fg); color: var(--bg); border: 1px solid var(--fg); font-family: inherit; font-size: 12px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        button.main-btn:hover:not(:disabled) { background: transparent; color: var(--fg); box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        button.main-btn:disabled { background: transparent; color: var(--dim); border-color: var(--dim); cursor: not-allowed; opacity: 0.5; }
+        
+        .alert-box { padding: 15px; border: 1px dashed var(--fg); background: rgba(255,255,255,0.05); font-size: 11px; text-align: center; letter-spacing: 2px; margin-bottom: 30px; line-height: 1.8; text-transform: uppercase; }
+        .alert-box span { font-weight: bold; font-size: 14px; letter-spacing: 4px; display: block; margin-top: 5px; color: var(--highlight); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .custom-tooltip { position: absolute; background: var(--fg); color: var(--bg); padding: 10px 15px; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; pointer-events: none; opacity: 0; border-radius: 2px; }
+        .custom-tooltip .icon { background: var(--bg); color: var(--fg); width: 16px; height: 16px; display: flex; justify-content: center; align-items: center; font-size: 12px; border-radius: 50%; }
+        .custom-tooltip::after { content: ''; position: absolute; bottom: 100%; left: 20px; border-width: 8px; border-style: solid; border-color: transparent transparent var(--fg) transparent; }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="hud-container">
+        <div class="hud-left">
+            <div class="terminal-stream" id="termStream">
+                [SYS] FINAL ANCHORING INITIATED...<br><br>
+                [SYS] LOADING SIGNATURE MODULE...<br><br>
+                [AUTH] AWAITING DIGITAL SIGNATURE...
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="status-block">
+                <div class="status-title">Target Node</div>
+                <div class="status-value">PHASE-03</div>
+            </div>
+            <div class="status-block">
+                <div class="status-title">Active Link</div>
+                <div class="status-value blink" id="hudActiveLink">SIG VERIFY</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="scan-line"></div>
+        <div class="auth-header">
+            <h2 id="panelTitle">Signature Anchor</h2>
+            <p id="panelSub">Digital Penmanship Match</p>
+        </div>
+
+        <div id="sigSection" class="section active">
+            <div class="canvas-container">
+                <div class="placeholder-text" id="ph-user">Draw or Scan Here</div>
+                <canvas id="sigCanvas"></canvas>
+            </div>
+            <div class="tools">
+                <button class="btn-tool" onclick="clearCanvas()">
+                    <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg> Clear
+                </button>
+                <button class="btn-tool" onclick="document.getElementById('uploadSig').click()">
+                    <svg viewBox="0 0 24 24"><path d="M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6Z"/></svg> Scan Paper
+                </button>
+                <input type="file" id="uploadSig" accept="image/*" capture="environment" style="display:none" onchange="handleUpload(event)">
+            </div>
+            <button class="main-btn" id="verifySigBtn" onclick="verifySignature()">VERIFY SIGNATURE</button>
+        </div>
+
+        <div id="aadhaarSection" class="section">
+            <div class="alert-box" style="border-style: solid; margin-bottom: 25px;">
+                SIGNATURE MATCH: <span id="sigMatchScore" style="color: var(--fg);">0%</span>
+                <div style="font-size: 8px; margin-top: 5px; opacity: 0.5;">PROCEEDING TO GOVT ID LINK</div>
+            </div>
+            <div class="input-box">
+                <label>Enter 12-Digit Aadhaar Number</label>
+                <input type="text" id="aadhaarInput" placeholder="XXXX XXXX XXXX" maxlength="14" autocomplete="off">
+            </div>
+            <button class="main-btn" id="sendOtpBtn" onclick="processAadhaar()">Request OTP</button>
+        </div>
+
+        <div id="otpSection" class="section">
+            <div class="alert-box" id="otpAlert">
+                SECURE OTP SENT TO LINKED NUMBER
+                <span id="maskedPhone">******0000</span>
+            </div>
+            
+            <div class="input-box phone-box">
+                <label>Confirm Full Phone Number</label>
+                <input type="tel" id="fullPhoneInput" placeholder="ENTER 10 DIGITS" maxlength="10" autocomplete="off">
+            </div>
+
+            <div class="input-box otp-box">
+                <label>Enter 6-Digit OTP</label>
+                <input type="text" id="otpInput" placeholder="------" maxlength="6" autocomplete="off">
+            </div>
+
+            <button class="main-btn" id="verifyBtn" onclick="verifyAadhaar()">Verify & Complete</button>
+        </div>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        let tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.innerHTML = '<span class="icon">!</span><span id="tooltip-msg"></span>';
+        document.body.appendChild(tooltip);
+
+        const showTooltip = (el, msg) => {
+            document.getElementById('tooltip-msg').innerText = msg;
+            const rect = el.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.bottom + 10) + 'px';
+            tooltip.style.opacity = '1';
+            setTimeout(() => tooltip.style.opacity = '0', 3000);
+        };
+
+        const term = document.getElementById('termStream');
+        
+        // Canvas Logic for Signature
+        const canvas = document.getElementById('sigCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let hasDrawn = false;
+
+        function resizeCanvas() {
+            const parent = canvas.parentElement;
+            if (parent.offsetWidth === 0) return;
+            const rect = parent.getBoundingClientRect();
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempCanvas.getContext('2d').drawImage(canvas, 0, 0);
+            
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            ctx.drawImage(tempCanvas, 0, 0);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+        window.addEventListener('resize', resizeCanvas);
+        setTimeout(resizeCanvas, 100);
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+            }
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        let lastPos = { x: 0, y: 0 };
+
+        function startPosition(e) {
+            isDrawing = true;
+            hasDrawn = true;
+            lastPos = getCoordinates(e);
+            
+            ctx.beginPath();
+            ctx.arc(lastPos.x, lastPos.y, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            
+            document.getElementById('ph-user').style.display = 'none';
+            e.preventDefault();
+        }
+
+        function endPosition(e) {
+            isDrawing = false;
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getCoordinates(e);
+            
+            ctx.beginPath();
+            ctx.moveTo(lastPos.x, lastPos.y);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            
+            lastPos = pos;
+        }
+
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', endPosition);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseout', endPosition);
+
+        canvas.addEventListener('touchstart', startPosition, {passive: false});
+        canvas.addEventListener('touchend', endPosition, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchcancel', endPosition, {passive: false});
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('ph-user').style.display = 'block';
+            document.getElementById('uploadSig').value = "";
+            hasDrawn = false;
+        }
+
+        function handleUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const rect = canvas.getBoundingClientRect();
+                    ctx.clearRect(0, 0, rect.width, rect.height);
+                    
+                    const hRatio = rect.width / img.width;
+                    const vRatio = rect.height / img.height;
+                    const ratio  = Math.min(hRatio, vRatio);
+                    const centerShift_x = (rect.width - img.width*ratio) / 2;
+                    const centerShift_y = (rect.height - img.height*ratio) / 2;  
+                    
+                    ctx.filter = "grayscale(100%) contrast(200%) brightness(1.5)";
+                    ctx.drawImage(img, 0,0, img.width, img.height, centerShift_x,centerShift_y,img.width*ratio, img.height*ratio);
+                    ctx.filter = "none";
+                    
+                    document.getElementById('ph-user').style.display = 'none';
+                    hasDrawn = true;
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function verifySignature() {
+            if (!hasDrawn) {
+                showTooltip(canvas, 'Please draw or upload signature');
+                return;
+            }
+            
+            const btn = document.getElementById('verifySigBtn');
+            btn.innerText = "ANALYZING AI MATCH...";
+            btn.disabled = true;
+            term.innerHTML += `<br><br>[SYS] EXTRACTING STROKE VECTORS...<br><br>[SYS] COMPARING WITH REGISTRATION LEDGER...`;
+
+            setTimeout(() => {
+                let matchScore = (Math.random() * (99 - 70) + 70).toFixed(1); 
+                term.innerHTML += `<br><br>[AI] SIGNATURE MATCH: ${matchScore}%`;
+                
+                if (parseFloat(matchScore) >= 75) {
+                    document.getElementById('sigMatchScore').innerText = `${matchScore}%`;
+                    document.getElementById('panelTitle').innerText = "Govt ID Anchor";
+                    document.getElementById('panelSub').innerText = "Aadhaar Verification Phase";
+                    document.getElementById('hudActiveLink').innerText = "UIDAI SYNC";
+                    term.innerHTML += `<br><br>[OK] SIGNATURE VERIFIED. PROCEEDING TO UIDAI.`;
+                    showSection('aadhaarSection');
+                } else {
+                    term.innerHTML += `<br><br>[ERROR] MATCH FAILED. RETRY REQUIRED.`;
+                    showTooltip(canvas, `Match Failed (${matchScore}%). Try Again.`);
+                    clearCanvas();
+                    btn.innerText = "VERIFY SIGNATURE";
+                    btn.disabled = false;
+                }
+            }, 2000);
+        }
+
+        // Aadhaar Formatting & Validation
+        let generatedLast4 = "";
+        document.getElementById('aadhaarInput').addEventListener('input', function (e) {
+            let val = e.target.value.replace(/\D/g, '').substring(0, 12);
+            e.target.value = val.replace(/(.{4})/g, '$1 ').trim();
+        });
+
+        document.getElementById('fullPhoneInput').addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+        document.getElementById('otpInput').addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+
+        function processAadhaar() {
+            const aadhaar = document.getElementById('aadhaarInput').value.replace(/\s/g, '');
+            if (aadhaar.length !== 12) {
+                showTooltip(document.getElementById('aadhaarInput'), 'Enter valid 12-digit Aadhaar');
+                return;
+            }
+
+            const btn = document.getElementById('sendOtpBtn');
+            btn.innerText = "LINKING TO UIDAI...";
+            btn.disabled = true;
+            term.innerHTML += `<br><br>[SYS] TRANSMITTING AADHAAR HASH...<br><br>[SYS] FETCHING LINKED DEVICE...`;
+
+            setTimeout(() => {
+                generatedLast4 = Math.floor(1000 + Math.random() * 9000).toString();
+                document.getElementById('maskedPhone').innerText = `******${generatedLast4}`;
+                showSection('otpSection');
+                term.innerHTML += `<br><br>[OK] OTP DISPATCHED TO ******${generatedLast4}`;
+            }, 2000);
+        }
+
+        function verifyAadhaar() {
+            const phone = document.getElementById('fullPhoneInput').value;
+            const otp = document.getElementById('otpInput').value;
+
+            if (phone.length !== 10) {
+                showTooltip(document.getElementById('fullPhoneInput'), 'Enter full 10-digit number');
+                return;
+            }
+            if (!phone.endsWith(generatedLast4)) {
+                showTooltip(document.getElementById('fullPhoneInput'), `Number must end with ${generatedLast4}`);
+                return;
+            }
+            if (otp.length !== 6) {
+                showTooltip(document.getElementById('otpInput'), 'Enter 6-digit OTP');
+                return;
+            }
+
+            const btn = document.getElementById('verifyBtn');
+            btn.innerText = "VERIFYING BLOCKCHAIN...";
+            btn.disabled = true;
+            term.innerHTML += `<br><br>[SYS] VERIFYING OTP HASH...<br><br>[SYS] VALIDATING DEVICE NETWORK...`;
+
+            setTimeout(() => {
+                term.innerHTML += `<br><br>[OK] AADHAAR ANCHORED SUCCESSFULLY. REDIRECTING...`;
+                btn.innerText = "ANCHORED SUCCESSFULLY";
+                btn.style.background = "var(--dim)";
+                btn.style.color = "var(--fg)";
+                
+                setTimeout(() => {
+                    window.location.href = 'saving.html';
+                }, 1500);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

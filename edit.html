@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Data Review</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --dim: rgba(255, 255, 255, 0.15); --highlight: rgba(255, 255, 255, 0.9); }
+        body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: var(--bg); background-image: linear-gradient(var(--dim) 1px, transparent 1px), linear-gradient(90deg, var(--dim) 1px, transparent 1px); background-size: 60px 60px; color: var(--fg); font-family: 'Courier New', Courier, monospace; overflow-x: hidden; position: relative; padding: 20px 0; box-sizing: border-box; }
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, transparent 15%, #000 90%); pointer-events: none; z-index: 1; }
+        
+        .hud-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; display: none; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        @media (min-width: 1024px) { .hud-container { display: flex; } }
+        
+        .hud-left { width: 250px; font-size: 10px; line-height: 1.8; opacity: 0.3; text-transform: uppercase; letter-spacing: 2px; position: relative; overflow: hidden; height: 80%; margin-top: auto; margin-bottom: auto; }
+        .hud-left::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(transparent, var(--bg)); }
+        .terminal-stream { animation: scrollUp 20s linear infinite; }
+        @keyframes scrollUp { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+        
+        .hud-right { width: 200px; display: flex; flex-direction: column; align-items: flex-end; gap: 40px; margin-top: auto; margin-bottom: auto; }
+        .status-block { text-align: right; }
+        .status-title { font-size: 10px; letter-spacing: 4px; opacity: 0.4; margin-bottom: 10px; text-transform: uppercase; }
+        .status-value { font-size: 14px; letter-spacing: 2px; font-weight: bold; opacity: 0.8; }
+        .status-value.blink { animation: blinkText 2s infinite; }
+        @keyframes blinkText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.2; } }
+
+        .auth-panel { border: 1px solid var(--dim); padding: 40px 30px; width: 90%; max-width: 450px; position: relative; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); box-shadow: 0 0 50px rgba(0,0,0,0.9); z-index: 10; margin: 20px auto; }
+        .auth-panel::before, .auth-panel::after { content: ''; position: absolute; width: 40px; height: 40px; border: 2px solid var(--fg); opacity: 0.8; pointer-events: none; }
+        .auth-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .auth-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+        
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: var(--highlight); opacity: 0.5; box-shadow: 0 0 10px var(--fg); animation: scan 4s cubic-bezier(0.4, 0, 0.2, 1) infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 0.6; } 50% { opacity: 0.8; } 90% { opacity: 0.6; } 100% { top: 100%; opacity: 0; } }
+
+        .auth-header { text-align: center; margin-bottom: 30px; }
+        .auth-header h2 { margin: 0; font-size: 20px; letter-spacing: 6px; text-transform: uppercase; font-weight: normal; }
+        .auth-header p { margin: 10px 0 0; font-size: 10px; letter-spacing: 3px; opacity: 0.5; text-transform: uppercase; }
+
+        .data-section { border: 1px dashed var(--dim); padding: 20px; margin-bottom: 20px; position: relative; background: rgba(255,255,255,0.02); transition: 0.3s; }
+        .data-section:hover { border-color: var(--highlight); background: rgba(255,255,255,0.05); }
+        
+        .sec-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--dim); padding-bottom: 10px; margin-bottom: 15px; }
+        .sec-title { font-size: 12px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; margin: 0; color: var(--fg); }
+        .btn-edit { background: transparent; border: 1px solid var(--dim); color: var(--fg); font-size: 9px; padding: 4px 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; font-family: inherit; }
+        .btn-edit:hover { border-color: var(--fg); background: var(--fg); color: var(--bg); }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .data-item { display: flex; flex-direction: column; gap: 5px; }
+        .data-item.full { grid-column: span 2; }
+        .data-label { font-size: 9px; opacity: 0.5; text-transform: uppercase; letter-spacing: 2px; }
+        .data-value { font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        .data-value.success { color: var(--fg); text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+        button.main-btn { width: 100%; padding: 18px; background: var(--fg); color: var(--bg); border: none; font-family: inherit; font-size: 14px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        button.main-btn:hover { background: #cccccc; box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+
+        @media (max-width: 600px) {
+            .data-grid { grid-template-columns: 1fr; gap: 10px; }
+            .data-item.full { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+
+    <div class="hud-container">
+        <div class="hud-left">
+            <div class="terminal-stream">
+                [SYS] COMPILING NODE LEDGER...<br><br>
+                [SYS] RETRIEVING BIOMETRIC HASH...<br><br>
+                [OK] DECRYPTION SUCCESSFUL<br><br>
+                [AUTH] AWAITING CITIZEN CONFIRMATION...
+            </div>
+        </div>
+        <div class="hud-right">
+            <div class="status-block">
+                <div class="status-title">Vault Target</div>
+                <div class="status-value">PHASE-03</div>
+            </div>
+            <div class="status-block">
+                <div class="status-title">Ledger State</div>
+                <div class="status-value blink">UNVERIFIED</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-panel">
+        <div class="scan-line"></div>
+        <div class="auth-header">
+            <h2>Data Review</h2>
+            <p>Verify Node Profile</p>
+        </div>
+
+        <div class="data-section">
+            <div class="sec-header">
+                <h3 class="sec-title">Citizen Profile</h3>
+                <button class="btn-edit" onclick="editSection('profile')">Edit</button>
+            </div>
+            <div class="data-grid">
+                <div class="data-item full">
+                    <span class="data-label">Full Legal Name</span>
+                    <span class="data-value">AL AMEER</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Date of Birth</span>
+                    <span class="data-value">19-09-2007</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Gender</span>
+                    <span class="data-value">MALE</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <div class="sec-header">
+                <h3 class="sec-title">Member Node</h3>
+                <button class="btn-edit" onclick="editSection('member')">Edit</button>
+            </div>
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-label">Member Name</span>
+                    <span class="data-value">SAFA</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Ward Code</span>
+                    <span class="data-value">WD-04</span>
+                </div>
+                <div class="data-item full">
+                    <span class="data-label">Contact Link</span>
+                    <span class="data-value">+91 9876543210</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <div class="sec-header">
+                <h3 class="sec-title">Govt Anchor</h3>
+                <button class="btn-edit" onclick="editSection('govt')">Edit</button>
+            </div>
+            <div class="data-grid">
+                <div class="data-item full">
+                    <span class="data-label">Aadhaar Identity</span>
+                    <span class="data-value">**** **** 1234</span>
+                </div>
+                <div class="data-item full">
+                    <span class="data-label">Linked Device</span>
+                    <span class="data-value">******4829 (VERIFIED)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <div class="sec-header">
+                <h3 class="sec-title">Biometric Vault</h3>
+                <button class="btn-edit" onclick="editSection('biometric')">Retake</button>
+            </div>
+            <div class="data-grid">
+                <div class="data-item">
+                    <span class="data-label">Facial Mesh</span>
+                    <span class="data-value success">[ ANCHORED ]</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">4-Fingers</span>
+                    <span class="data-value success">[ ANCHORED ]</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Dual Thumb</span>
+                    <span class="data-value success">[ ANCHORED ]</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Hand Palm</span>
+                    <span class="data-value success">[ ANCHORED ]</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Retinal Iris</span>
+                    <span class="data-value success">[ ANCHORED ]</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-label">Signature</span>
+                    <span class="data-value success">[ VERIFIED ]</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="main-btn" onclick="confirmData(this)">Confirm & Sync To Vault</button>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        function editSection(section) {
+            if (section === 'biometric') {
+                window.location.href = 'biometric_lab.html';
+            } else if (section === 'govt') {
+                window.location.href = 'additional_details.html';
+            } else {
+                alert("SYSTEM NOTIFICATION\n\nRedirecting to " + section.toUpperCase() + " editor...");
+            }
+        }
+
+        function confirmData(btn) {
+            btn.innerText = "INITIATING UPLOAD...";
+            btn.disabled = true;
+            document.querySelector('.status-value.blink').innerText = "VERIFIED";
+            document.querySelector('.status-value.blink').classList.remove('blink');
+            
+            setTimeout(() => {
+                window.location.href = 'uploading.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
