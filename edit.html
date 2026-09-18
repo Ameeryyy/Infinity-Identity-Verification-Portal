@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity - Biometric Review Node</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --c-blue: #007bff; --c-red: #ff4444; --c-green: #00C851; --c-yellow: #ffbb33; --c-cyan: #00ffff; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--c-blue); }
+
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--bg) !important; 
+            color: var(--fg) !important; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; overflow-x: hidden; 
+            opacity: 0; transition: opacity 1s ease-in-out; padding-bottom: 50px;
+        }
+
+        .top-left { position: fixed; top: clamp(15px, 4vw, 30px); left: clamp(15px, 4vw, 30px); cursor: pointer; opacity: 0.6; transition: 0.3s; color: inherit; display: flex; align-items: center; justify-content: center; text-decoration: none; z-index: 100; }
+        .top-left:hover { opacity: 1; color: var(--c-blue); }
+        .top-left span { font-weight: 900; letter-spacing: 2px; font-size: 13px; }
+
+        .master-wrapper { width: 90%; max-width: 650px; margin-top: 100px; animation: fadeIn 0.6s ease; }
+        
+        .brand-title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; opacity: 0.5; margin-bottom: 8px; text-align: center; }
+        h1 { font-weight: bold; margin-top: 0; margin-bottom: 30px; font-size: clamp(22px, 6vw, 32px); text-align: center; text-transform: uppercase; letter-spacing: 1px; color: var(--c-blue); }
+
+        .review-card { border: 1px solid rgba(128,128,128,0.2); border-radius: 16px; background: rgba(128,128,128,0.01); backdrop-filter: blur(10px); padding: 25px; margin-bottom: 25px; width: 100%; box-sizing: border-box; transition: 0.3s; }
+        .review-card:hover { border-color: rgba(0, 123, 255, 0.4); box-shadow: 0 5px 20px rgba(0, 123, 255, 0.05); }
+        
+        .step-tag { font-size: 9px; font-weight: bold; color: var(--c-blue); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; display: block; opacity: 0.8; }
+        
+        .review-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(128,128,128,0.2); padding-bottom: 12px; margin-bottom: 18px; }
+        .review-title { font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; display: flex; align-items: center; gap: 10px; color: var(--fg); }
+        .review-title svg { width: 18px; height: 18px; fill: var(--c-blue); }
+        
+        .btn-edit-section { font-size: 10px; font-weight: bold; text-decoration: none; color: var(--c-yellow); border: 1px solid var(--c-yellow); padding: 6px 12px; border-radius: 6px; transition: all 0.3s; letter-spacing: 1px; }
+        .btn-edit-section:hover { background: var(--c-yellow); color: #000000; }
+
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .data-item { display: flex; flex-direction: column; gap: 4px; }
+        .data-label { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .data-value { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; word-break: break-word; color: var(--fg); }
+        
+        .btn-final { width: 100%; padding: 16px; background: transparent; color: var(--c-green); border: 1px solid var(--c-green); border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.4s ease; letter-spacing: 2px; text-transform: uppercase; margin-top: 20px; display: flex; align-items: center; justify-content: center; }
+        .btn-final:hover { background: var(--c-green) !important; color: #000000 !important; box-shadow: 0 5px 20px rgba(0, 200, 81, 0.4); }
+        .btn-final:active { transform: scale(0.98); }
+        
+        .btn-final.processing { opacity: 1 !important; pointer-events: none; background: var(--c-yellow) !important; border-color: var(--c-yellow) !important; color: #000000 !important; box-shadow: 0 5px 15px rgba(255, 187, 51, 0.3); }
+
+        .wave-dots { display: inline-block; margin-left: 2px; }
+        .wave-dots span { display: inline-block; animation: wave 1.2s infinite ease-in-out; }
+        .wave-dots span:nth-child(1) { animation-delay: 0s; }
+        .wave-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .wave-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        .info-carousel { font-size: clamp(11px, 2.5vw, 13px); opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; transition: opacity 0.5s ease-in-out; pointer-events: none; height: 20px; margin-top: 25px; text-align: center; width: 100%; display: flex; align-items: center; justify-content: center; }
+        .spinner-inline { display: inline-block; width: 12px; height: 12px; border: 2px solid transparent; border-top-color: var(--c-cyan); border-right-color: var(--c-cyan); border-radius: 50%; animation: spin 1s linear infinite; margin-left: 8px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .master-wrapper { margin-top: 80px; width: 92%; }
+            .review-card { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="verification.html" class="top-left">
+        <span>BACK</span>
+    </a>
+
+    <div class="master-wrapper">
+        <div class="brand-title">Infinity Master Control</div>
+        <h1><strong>Verification Review</strong></h1>
+
+        <div id="reviewContainer"></div>
+
+        <button id="btnProceed" class="btn-final" onclick="proceedToConfirm()">FINALIZE VERIFICATION ✔</button>
+
+        <div id="infoCarousel" class="info-carousel">System Architecture Integrity: Verified<div class="spinner-inline"></div></div>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => { document.body.style.opacity = '1'; }, 100);
+            loadMasterData();
+        });
+
+        function loadMasterData() {
+            let s = {};
+            try {
+                s = JSON.parse(localStorage.getItem('inf_settings')) || {};
+            } catch(e) {}
+
+            const container = document.getElementById('reviewContainer');
+            let htmlStr = "";
+
+            // User Identity Info Card (No Modify Button)
+            let tName = s.verificationTargetName || "UNKNOWN";
+            let tPhoneFull = s.verificationTargetPhone || "UNKNOWN";
+            let tPhoneMasked = tPhoneFull.length >= 4 ? "**** **** " + tPhoneFull.slice(-4) : tPhoneFull;
+            let tCountryCode = s.verificationTargetCountryCode || "+91"; 
+            let tCountry = s.verificationTargetCountry || "INDIA";
+            let tDob = s.verificationTargetDOB || "NOT PROVIDED";
+
+            htmlStr += `
+                <div class="review-card" style="border-color: var(--c-green); box-shadow: 0 5px 20px rgba(0, 200, 81, 0.05);">
+                    <span class="step-tag" style="color: var(--c-green);">TARGET PROFILE NODE</span>
+                    <div class="review-header" style="border-bottom: none; margin-bottom: 5px; padding-bottom: 0;">
+                        <div class="review-title" style="color: var(--c-green);">
+                            <svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
+                            Target Profile Details
+                        </div>
+                    </div>
+                    <div class="data-grid" style="border-top: 1px dashed rgba(128,128,128,0.2); margin-top: 15px; padding-top: 15px;">
+                        <div class="data-item"><span class="data-label">Full Name</span><span class="data-value">${tName}</span></div>
+                        <div class="data-item"><span class="data-label">Date of Birth</span><span class="data-value">${tDob}</span></div>
+                        <div class="data-item"><span class="data-label">Phone Number</span><span class="data-value">${tPhoneMasked}</span></div>
+                        <div class="data-item"><span class="data-label">Country Code</span><span class="data-value">${tCountryCode}</span></div>
+                        <div class="data-item"><span class="data-label">Phone Country</span><span class="data-value">${tCountry}</span></div>
+                    </div>
+                </div>
+            `;
+
+            const sections = [
+                {
+                    step: "PHASE 1 OF 5",
+                    title: "Facial Verification",
+                    link: "verification2.html?edit=true",
+                    icon: `<path d="M9,11.75A1.25,1.25 0 0,0 7.75,13A1.25,1.25 0 0,0 9,14.25A1.25,1.25 0 0,0 10.25,13A1.25,1.25 0 0,0 9,11.75M15,11.75A1.25,1.25 0 0,0 13.75,13A1.25,1.25 0 0,0 15,14.25A1.25,1.25 0 0,0 16.25,13A1.25,1.25 0 0,0 15,11.75M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,16.25C9.75,16.25 7.75,15 6.75,13.25L8.1,12.5C8.8,13.75 10.3,14.75 12,14.75C13.7,14.75 15.2,13.75 15.9,12.5L17.25,13.25C16.25,15 14.25,16.25 12,16.25Z"/>`,
+                    data: [
+                        { label: "Authentication Status", val: "<span style='color:var(--c-green)'>VERIFIED ✔</span>" },
+                        { label: "Match Accuracy", val: "Optimal (>80%)" }
+                    ]
+                },
+                {
+                    step: "PHASE 2 OF 5",
+                    title: "Fingerprint Verification",
+                    link: "verification3.html?edit=true",
+                    icon: `<path d="M17.06,10.61C16.73,10.5 16.37,10.66 16.25,11C15.54,13 14.21,14.54 12,14.54C11.66,14.54 11.33,14.47 11,14.36V10.27C11,9.9 11.19,9.54 11.47,9.31C13.59,7.63 15,5.13 15,2.5V2.25C15,1.84 14.66,1.5 14.25,1.5C13.84,1.5 13.5,1.84 13.5,2.25V2.5C13.5,4.72 12.33,6.8 10.53,8.23C9.94,8.7 9.5,9.45 9.5,10.27V15C9.5,15.11 9.5,15.21 9.53,15.31C8.28,15 7.31,14.03 7,12.79C6.9,12.4 6.5,12.16 6.11,12.26C5.72,12.36 5.47,12.76 5.58,13.15C6.04,15 7.47,16.42 9.35,16.86C9.3,16.94 9.25,17.03 9.25,17.12V21.25C9.25,21.66 9.59,22 10,22C10.41,22 10.75,21.66 10.75,21.25V17.19C11.16,17.23 11.57,17.25 12,17.25C14.77,17.25 16.96,15.2 17.75,12.5C17.86,12.11 17.65,11.71 17.26,11.61M12,4.5C10.56,4.5 9.17,4.92 8,5.75C7.66,6 7.19,5.91 6.95,5.57C6.71,5.23 6.81,4.76 7.15,4.5C8.59,3.53 10.26,3 12,3C15.86,3 19,6.13 19,10V10.25C19,10.66 18.66,11 18.25,11C17.84,11 17.5,10.66 17.5,10.25V10C17.5,6.96 15.04,4.5 12,4.5M10.25,6C10.82,5.83 11.41,5.75 12,5.75C14.35,5.75 16.25,7.65 16.25,10V10.25C16.25,10.66 15.91,11 15.5,11C15.09,11 14.75,10.66 14.75,10.25V10C14.75,8.48 13.52,7.25 12,7.25C11.53,7.25 11.08,7.36 10.65,7.57C10.28,7.75 9.83,7.6 9.64,7.22C9.45,6.85 9.6,6.4 9.97,6.21C10.06,6.16 10.15,6.1 10.25,6M7.25,8C7.54,7.65 8.05,7.61 8.39,7.89C8.74,8.18 8.78,8.69 8.5,9.04C7.88,9.79 7.5,10.74 7.5,11.75V12.25C7.5,12.66 7.16,13 6.75,13C6.34,13 6,12.66 6,12.25V11.75C6,10.37 6.47,9.07 7.25,8Z"/>`,
+                    data: [
+                        { label: "Authentication Status", val: "<span style='color:var(--c-green)'>VERIFIED ✔</span>" },
+                        { label: "Left & Right Hands", val: "Scanned & Anchored" }
+                    ]
+                },
+                {
+                    step: "PHASE 3 OF 5",
+                    title: "Thumb Verification",
+                    link: "verification4.html?edit=true",
+                    icon: `<path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,6V9H8V11H11V18H13V11H16V9H13V6H11Z"/>`,
+                    data: [
+                        { label: "Authentication Status", val: "<span style='color:var(--c-green)'>VERIFIED ✔</span>" },
+                        { label: "Left & Right Thumbs", val: "Minutiae Matched" }
+                    ]
+                },
+                {
+                    step: "PHASE 4 OF 5",
+                    title: "Iris Verification",
+                    link: "verification5.html?edit=true",
+                    icon: `<path d="M12,4C7,4 2.73,7.11 1,12C2.73,16.89 7,20 12,20C17,20 21.27,16.89 23,12C21.27,7.11 17,4 12,4M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z"/>`,
+                    data: [
+                        { label: "Authentication Status", val: "<span style='color:var(--c-green)'>VERIFIED ✔</span>" },
+                        { label: "Dual Eye Scan", val: "IrisCode Registered" }
+                    ]
+                },
+                {
+                    step: "PHASE 5 OF 5",
+                    title: "Digital Signature",
+                    link: "verification6.html?edit=true",
+                    icon: `<path d="M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87L20.71,7.04Z"/>`,
+                    data: [
+                        { label: "Authentication Status", val: "<span style='color:var(--c-green)'>VERIFIED ✔</span>" },
+                        { label: "Digital Password", val: "Stored & Encrypted" }
+                    ]
+                }
+            ];
+
+            let editIcon = `<svg style="width:10px; height:10px; fill:currentColor; margin-left:3px; vertical-align:middle;" viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>`;
+
+            sections.forEach(sec => {
+                let itemsHtml = "";
+                
+                sec.data.forEach(item => {
+                    itemsHtml += `
+                        <div class="data-item">
+                            <span class="data-label">${item.label}</span>
+                            <span class="data-value">${item.val}</span>
+                        </div>
+                    `;
+                });
+
+                htmlStr += `
+                    <div class="review-card">
+                        <span class="step-tag">${sec.step}</span>
+                        <div class="review-header" style="border-bottom: none; margin-bottom: 5px; padding-bottom: 0;">
+                            <div class="review-title">
+                                <svg viewBox="0 0 24 24">${sec.icon}</svg>
+                                ${sec.title}
+                            </div>
+                            <a href="${sec.link}" class="btn-edit-section">
+                                MODIFY ${editIcon}
+                            </a>
+                        </div>
+                        <div class="data-grid" style="border-top: 1px dashed rgba(128,128,128,0.2); margin-top: 15px; padding-top: 15px;">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML += htmlStr;
+        }
+
+        function proceedToConfirm() {
+            const btn = document.getElementById('btnProceed');
+            btn.classList.add('processing');
+            btn.innerHTML = 'FINALIZING NODE<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>';
+            btn.style.pointerEvents = 'none';
+
+            setTimeout(() => {
+                document.body.style.opacity = '0';
+                setTimeout(() => {
+                    window.location.href = 'confirm.html'; 
+                }, 1000);
+            }, 2000);
+        }
+
+        const archInfo = [
+            "System Architecture Integrity: Verified",
+            "Establishing Secure Cryptographic Tunnels",
+            "End-to-End AES-GCM Encryption Active",
+            "Synchronizing Decentralized Nodes",
+            "Zero-Knowledge Proofs Validated",
+            "Protecting Digital Footprint...",
+            "Private Data Exclusively Controlled",
+            "Monitoring Network Latency",
+            "Awaiting User Authorization",
+            "Quantum-Resistant Protocols Engaged"
+        ];
+        let infoIndex = 0;
+        setInterval(() => {
+            const el = document.getElementById('infoCarousel');
+            if(el) {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    infoIndex = (infoIndex + 1) % archInfo.length;
+                    el.innerHTML = archInfo[infoIndex] + '<div class="spinner-inline"></div>';
+                    el.style.opacity = '0.6';
+                }, 500);
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css" />
+    <style>
+        :root { --bg: #030305; --fg: #ffffff; --c-blue: #007bff; --c-green: #00C851; --c-red: #ff4444; --c-yellow: #ffbb33; --c-cyan: #00e5ff; --dim: rgba(0, 123, 255, 0.15); --card-bg: rgba(10, 10, 12, 0.8); --hover-bg: rgba(0, 123, 255, 0.1); --accent: #007bff; }
+        
+        body { margin: 0; font-family: 'Segoe UI', -apple-system, sans-serif; background-color: var(--bg) !important; color: var(--fg) !important; overflow-x: hidden; display: block !important; text-align: left !important; min-height: 100vh; }
+        .top-left { position: absolute; top: 30px; left: 30px; cursor: pointer; opacity: 0.6; transition: opacity 0.3s; color: inherit; display: flex; align-items: center; z-index: 10; text-decoration: none; font-size: 14px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+        .top-left:hover { opacity: 1; color: var(--c-blue); }
+        .container { width: 100%; max-width: 1400px; margin: 0 auto; padding: 100px 40px 40px 40px; animation: fadeIn 0.5s; box-sizing: border-box; }
+        .header-section { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 20px; position: relative; z-index: 100; }
+        .page-title { font-size: 32px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin: 0; border-left: 5px solid var(--accent); padding-left: 20px; }
+        
+        .search-box { display: flex; background: rgba(0, 123, 255, 0.05); border: 1px solid var(--dim); border-radius: 12px; padding: 5px; backdrop-filter: blur(10px); width: 100%; align-items: center; position: relative; z-index: 100; }
+        .custom-select { position: relative; border-right: 1px solid var(--dim); height: 100%; display: flex; align-items: center; pointer-events: none; }
+        .select-selected { background: transparent; color: var(--c-blue); padding: 12px 15px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; user-select: none; white-space: nowrap; }
+        
+        .search-input { flex: 1; background: transparent; border: none; padding: 12px 15px; color: var(--fg); font-size: 14px; outline: none; font-family: inherit; font-weight: bold; letter-spacing: 1px; width: 100%; }
+        .search-input::placeholder { color: var(--fg); opacity: 0.4; font-weight: normal; letter-spacing: normal; }
+        .search-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .search-toggle-btn { cursor: pointer; padding: 0 15px; color: var(--c-blue); border-left: 1px solid var(--dim); display: flex; align-items: center; justify-content: center; transition: 0.3s; height: 100%; }
+        .search-toggle-btn:hover { color: var(--fg); transform: scale(1.1); }
+        .search-toggle-btn svg { width: 20px; height: 20px; fill: currentColor; }
+        
+        .iti { flex: 1; width: 100%; display: block; }
+        .phone-intl { padding-left: 95px !important; box-sizing: border-box; }
+        .iti__country-list { background: #0a0a0c !important; border: 1px solid var(--c-blue) !important; border-radius: 8px !important; box-shadow: 0 15px 35px rgba(0,0,0,0.9) !important; padding: 0 !important; margin: 5px 0 0 0 !important; font-family: inherit !important; font-size: 11px !important; font-weight: bold !important; letter-spacing: 1px !important; text-transform: uppercase !important; scrollbar-width: thin; scrollbar-color: var(--c-blue) transparent; z-index: 9999 !important; display: block !important; opacity: 1; visibility: visible; transform: translateY(0); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important; }
+        .iti__country-list.iti__hide { display: block !important; opacity: 0; visibility: hidden; transform: translateY(-10px); pointer-events: none; }
+        .iti__country { padding: 12px 15px !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; transition: background 0.2s !important; display: flex; align-items: center; outline: none; }
+        .iti__country:hover, .iti__country.iti__highlight { background-color: var(--c-blue) !important; color: #ffffff !important; }
+        .iti__country-name { color: var(--fg); flex: 1; text-align: left; }
+        .iti__country:hover .iti__country-name, .iti__country.iti__highlight .iti__country-name { color: #ffffff; }
+        .iti__dial-code { color: rgba(255,255,255,0.5) !important; }
+        .iti__country:hover .iti__dial-code { color: #ffffff !important; }
+        .iti__divider { display: none !important; }
+        .iti__selected-flag { background: transparent !important; padding: 0 15px !important; outline: none; transition: 0.3s; }
+        .iti__selected-flag:hover { background: rgba(128,128,128,0.1) !important; }
+
+        .stats-header { display: flex; gap: 30px; margin-bottom: 40px; }
+        .stat-box { flex: 1; background: var(--card-bg); border: 1px solid var(--dim); padding: 40px; border-radius: 16px; backdrop-filter: blur(20px); display: flex; flex-direction: column; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: border-color 0.3s; }
+        .stat-box:hover { border-color: var(--c-blue); }
+        .stat-box h4 { margin: 0; font-size: 14px; color: var(--c-blue); text-transform: uppercase; letter-spacing: 1.5px; }
+        .stat-box h1 { margin: 15px 0 0 0; font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        
+        .request-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 30px; width: 100%; align-items: start; position: relative; z-index: 10; }
+        .user-card { background: var(--card-bg); border: 1px solid var(--dim); border-radius: 16px; padding: 30px; backdrop-filter: blur(20px); display: flex; flex-direction: column; transition: transform 0.3s, border-color 0.3s; width: 100%; box-sizing: border-box; }
+        .user-card:hover { transform: translateY(-5px); border-color: var(--c-blue); box-shadow: 0 10px 30px rgba(0, 123, 255, 0.15); }
+        .uc-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--dim); padding-bottom: 15px; }
+        .uc-head-left { display: flex; gap: 15px; align-items: center; }
+        .user-pic { width: 55px; height: 55px; background: rgba(0,123,255,0.05); border: 2px dashed var(--c-blue); border-radius: 12px; display: flex; justify-content: center; align-items: center; overflow: hidden; cursor: pointer; transition: 0.3s; }
+        .user-pic:hover { box-shadow: 0 0 10px rgba(0,123,255,0.4); transform: scale(1.05); }
+        .user-pic img { width: 100%; height: 100%; object-fit: cover; }
+        .uc-head h3 { margin: 0; font-size: 20px; text-transform: uppercase; color: var(--c-blue); letter-spacing: 1px; }
+        .uc-head p { margin: 4px 0 0 0; font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1.5px; }
+        .badge { font-size: 10px; padding: 6px 12px; border: 1px solid var(--c-yellow); border-radius: 6px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; color: var(--c-yellow); background: rgba(255, 187, 51, 0.1); }
+        .uc-body { font-size: 13px; opacity: 0.8; line-height: 1.8; margin-bottom: 25px; flex: 1; }
+        .uc-body strong { color: var(--fg); opacity: 0.5; }
+        .uc-body span { font-weight: bold; color: var(--fg); letter-spacing: 1px; }
+        .btn-details { width: 100%; padding: 14px; background: transparent; color: var(--c-blue); border: 1px dashed var(--c-blue); border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s; margin-bottom: 15px; box-sizing: border-box; }
+        .btn-details:hover { background: var(--c-blue); color: var(--bg); border-style: solid; }
+        
+        .no-data { width: 100%; text-align: center; padding: 50px 20px; color: var(--c-red); opacity: 0; display: none; flex-direction: column; align-items: center; justify-content: center; grid-column: 1 / -1; }
+        .no-data.show { display: flex; animation: fadeIn 0.5s forwards; }
+        .no-data svg { width: 60px; height: 60px; fill: currentColor; margin-bottom: 15px; opacity: 0.8; }
+        .no-data h3 { margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; }
+        .no-data p { margin: 10px 0 0 0; font-size: 12px; color: var(--fg); opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+
+        .details-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .details-modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .details-modal-box { background: var(--card-bg); border: 1px solid var(--c-blue); border-radius: 16px; padding: 40px; max-width: 900px; width: 90%; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 15px 40px rgba(0, 123, 255, 0.2); transform: scale(0.95); transition: 0.3s; }
+        .details-modal-overlay.show .details-modal-box { transform: scale(1); }
+        .details-modal-box::-webkit-scrollbar { width: 6px; }
+        .details-modal-box::-webkit-scrollbar-thumb { background: rgba(0, 123, 255, 0.5); border-radius: 6px; }
+        
+        .btn-close-modal { position: absolute; top: 15px; right: 15px; width: 36px; height: 36px; background: var(--c-red); color: #fff; border: none; border-radius: 50%; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: transform 0.2s; box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4); }
+        .btn-close-modal:hover { transform: scale(1.1); }
+
+        .user-header { display: flex; align-items: center; gap: 30px; margin-bottom: 40px; border-bottom: 1px solid var(--dim); padding-bottom: 30px; }
+        .user-avatar { width: 120px; height: 120px; background: rgba(0, 123, 255, 0.05); border-radius: 16px; display: flex; justify-content: center; align-items: center; border: 2px dashed var(--c-blue); flex-shrink: 0; overflow: hidden; box-shadow: 0 0 20px rgba(0, 123, 255, 0.2); }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info h2 { margin: 0; font-size: 32px; letter-spacing: 1px; text-transform: uppercase; color: var(--c-blue); }
+        .user-info p { margin: 8px 0 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: var(--fg); }
+        
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-bottom: 40px; }
+        .data-item { display: flex; flex-direction: column; gap: 8px; }
+        .data-item.full-width { grid-column: 1 / -1; }
+        .data-label { font-size: 11px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; color: var(--c-blue); }
+        .data-val { font-size: 15px; font-weight: 600; background: rgba(0, 123, 255, 0.05); padding: 16px; border-radius: 10px; border: 1px solid var(--dim); word-break: break-word; color: var(--fg); letter-spacing: 1px; text-transform: uppercase; }
+        
+        .action-bar { display: flex; gap: 20px; border-top: 1px solid var(--dim); padding-top: 30px; }
+        .btn { flex: 1; padding: 18px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; border: 1px solid var(--dim); border-radius: 12px; background: transparent; cursor: pointer; transition: all 0.3s; }
+        .btn-accept { color: var(--c-green); border-color: rgba(0, 200, 81, 0.3); }
+        .btn-accept:hover { background: var(--c-green); color: #000; border-color: var(--c-green); box-shadow: 0 5px 15px rgba(0, 200, 81, 0.3); }
+        .btn-reject { color: var(--c-red); border-color: rgba(255, 68, 68, 0.3); }
+        .btn-reject:hover { background: var(--c-red); color: #fff; border-color: var(--c-red); box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3); }
+
+        .inf-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 20000; opacity: 0; transition: opacity 0.3s; }
+        .inf-show { opacity: 1; }
+        .inf-alert { background: #0a0a0c; border: 1px solid var(--dim); padding: 25px; border-radius: 16px; max-width: 320px; width: 85%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); transform: translateY(20px); transition: 0.3s; }
+        .inf-show .inf-alert { transform: translateY(0); }
+        .inf-alert h3 { margin: 0 0 15px 0; font-size: 16px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        .inf-confirm-btns { display: flex; gap: 15px; margin-top: 25px; }
+        
+        .inf-btn-cancel { flex: 1; background: transparent; color: #ffffff; border: 1px solid #ffffff; padding: 12px; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 11px; font-weight: bold; transition: all 0.3s; }
+        .inf-btn-cancel:hover { background: #ffffff; color: #000000; box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4); border-color: #ffffff; }
+        .inf-btn-cancel:active { transform: scale(0.95); }
+        
+        .inf-btn-confirm { flex: 1; background: transparent; border: 1px solid; padding: 12px; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 11px; font-weight: bold; transition: all 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes dropIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; animation: spin 1s linear infinite; margin: 15px auto 0 auto; }
+        
+        .wave-dots { display: inline-block; margin-left: 2px; }
+        .wave-dots span { display: inline-block; animation: wave 1.2s infinite ease-in-out; }
+        .wave-dots span:nth-child(1) { animation-delay: 0s; }
+        .wave-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .wave-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+        @media (max-width: 768px) { .container { padding: 80px 20px 20px 20px; } .request-grid { grid-template-columns: 1fr; } .header-section { flex-direction: column; align-items: flex-start; gap: 20px; } .search-box { max-width: 100%; } .stats-header { flex-direction: column; gap: 20px; } .details-modal-box { padding: 20px; } .data-grid { grid-template-columns: 1fr; } .action-bar { flex-direction: column; } .user-info h2 { font-size: 24px; } .user-avatar { width: 90px; height: 90px; } }
+    </style>
+</head>
+<body>
+    <a href="#" id="backBtn" class="top-left">BACK</a>
+    <div class="container">
+        
+        <div class="header-section">
+            <h1 class="page-title">Ready for Verification</h1>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 500px; position: relative; z-index: 100;">
+                
+                <div class="search-box" id="phoneSearchBox">
+                    <div class="custom-select">
+                        <div class="select-selected">
+                            PHONE 
+                            <span id="selectedCountryDisplay" style="display: none; color: var(--c-cyan); font-size: 9px; margin-left: 6px; border: 1px solid rgba(0,229,255,0.3); padding: 2px 6px; border-radius: 4px; background: rgba(0,229,255,0.05); letter-spacing: 1px;"></span>
+                        </div>
+                    </div>
+                    <div style="position: relative; flex: 1; display: flex; align-items: center;">
+                        <input type="tel" class="search-input phone-intl" id="phoneSearchInput" placeholder="Enter phone number..." autocomplete="off">
+                    </div>
+                    <div class="search-toggle-btn" id="searchToggleBtn" style="display: none;" onclick="toggleSearchMode()">
+                        <svg viewBox="0 0 24 24"><path d="M12 20L6 14H9V4H15V14H18L12 20Z"/></svg>
+                    </div>
+                </div>
+
+                <div class="search-box" id="nameSearchBox" style="display: none; animation: dropIn 0.3s ease-out;">
+                    <div class="custom-select">
+                        <div class="select-selected">NAME</div>
+                    </div>
+                    <div style="display: flex; flex: 1; align-items: center; position: relative; width: 100%;">
+                        <input type="text" class="search-input" id="nameSearchInput" placeholder="Filter by name..." autocomplete="off">
+                        <div id="clearNameBtn" style="cursor: pointer; padding: 0 15px; color: var(--c-red); font-size: 16px; font-weight: bold; display: none; align-items: center;" onclick="clearNameSearch()">✕</div>
+                    </div>
+                    <div class="search-toggle-btn" onclick="toggleSearchMode()">
+                        <svg viewBox="0 0 24 24"><path d="M12 4L18 10H15V20H9V10H6L12 4Z"/></svg>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="stats-header">
+            <div class="stat-box" style="border-color: rgba(0, 123, 255, 0.3); background: color-mix(in srgb, var(--c-blue) 5%, var(--card-bg));">
+                <h4 style="color: var(--c-blue);">Total Pending Verifications</h4>
+                <h1 style="color: var(--c-blue);">{{ count }}</h1>
+            </div>
+            <div class="stat-box" style="border-color: rgba(0, 200, 81, 0.3); background: color-mix(in srgb, var(--c-green) 5%, var(--card-bg));">
+                <h4 style="color: var(--c-green);">Verification Complete</h4>
+                <h1 style="color: var(--c-green);">{{ accepted_count }}</h1>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="no-data show" style="margin-bottom: 30px;">
+            <svg viewBox="0 0 24 24"><path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/></svg>
+            <h3>DATABASE CONNECTION REQUIRED</h3>
+            <p>Ensure database is configured in settings to pull data.</p>
+            <p style="color:var(--c-red); font-size:10px; margin-top: 10px;">Error: {{ error }}</p>
+        </div>
+        {% endif %}
+
+        <div class="request-grid" id="cardContainer">
+            
+            {% if profiles %}
+                {% for p in profiles %}
+                <div class="user-card" id="card-INF-{{ p.id }}" data-name="{{ p.name }}" data-dob="{{ p.dob_year }}" data-phone="{{ p.phone_full }}" data-email="{{ p.email }}" data-blood="{{ p.blood }}" data-gender="{{ p.gender }}">
+                    
+                    <div class="uc-head">
+                        <div class="uc-head-left">
+                            <div class="user-pic">
+                                {% if p.photo %}
+                                    <img src="{{ p.photo }}" alt="User">
+                                {% else %}
+                                    <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: var(--c-blue); opacity: 0.8;"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3>{{ p.name }}</h3>
+                                <p>Identity Verification</p>
+                            </div>
+                        </div>
+                        <span class="badge" style="border-color: var(--c-blue); color: var(--c-blue); background: rgba(0,123,255,0.1);">Validated</span>
+                    </div>
+
+                    <div class="uc-body">
+                        <strong>DOB YEAR:</strong> <span>{{ p.dob_year }}</span><br>
+                        <strong>GENDER:</strong> <span>{{ p.gender }}</span><br>
+                        <strong>BLOOD GROUP:</strong> <span>{{ p.blood }}</span><br>
+                        <strong>PHONE:</strong> <span>{{ p.phone_full }}</span><br>
+                        <strong>EMAIL ID:</strong> <span style="text-transform: none;">{{ p.email }}</span><br>
+                        <strong>VALIDATED ON:</strong> <span>{{ p.date_time }}</span>
+                    </div>
+                    <button class="btn-details" onclick="openDetailsModal('{{ p.id }}')">View & Verify Details</button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="no-data {% if not profiles %}show{% endif %}" id="noDataMessage">
+                <svg viewBox="0 0 24 24"><path d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z"/></svg>
+                <h3>NO DATA FOUND</h3>
+                <p>No verified profiles match your current search criteria.</p>
+            </div>
+
+        </div>
+    </div>
+
+    {% if profiles %}
+        {% for p in profiles %}
+        <div class="details-modal-overlay" id="modal-INF-{{ p.id }}">
+            <div class="details-modal-box">
+                <button class="btn-close-modal" onclick="closeDetailsModal('{{ p.id }}')">X</button>
+                
+                <div class="user-header">
+                    <div class="user-avatar">
+                        {% if p.photo %}
+                            <img src="{{ p.photo }}" alt="User Photo">
+                        {% else %}
+                            <svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <h2>{% if p.name %}{{ p.name }}{% else %}N/A{% endif %}</h2>
+                        <p>{% if p.phone_full %}{{ p.phone_full }}{% else %}N/A{% endif %}</p>
+                    </div>
+                </div>
+
+                <div class="data-grid">
+                    <div class="data-item"><span class="data-label">Birth Country</span><span class="data-val">{% if p.birth_country %}{{ p.birth_country }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Nationality</span><span class="data-val">{% if p.nationality %}{{ p.nationality }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Date of Birth</span><span class="data-val">{% if p.date_of_birth %}{{ p.date_of_birth }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Current Age</span><span class="data-val">{% if p.current_age %}{{ p.current_age }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Current Identified Gender</span><span class="data-val">{% if p.gender %}{{ p.gender }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item full-width"><span class="data-label">Compiled Live Address Map</span><span class="data-val" style="text-transform: none;">{% if p.compiled_address %}{{ p.compiled_address }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Blood Group</span><span class="data-val">{% if p.blood %}{{ p.blood }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Guardian Full Name</span><span class="data-val">{% if p.guardian_name %}{{ p.guardian_name }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Current Relief or Belief</span><span class="data-val">{% if p.religion %}{{ p.religion }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Current Denomination or Sect</span><span class="data-val">{% if p.denomination %}{{ p.denomination }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">E-Mail Address</span><span class="data-val" style="text-transform: none;">{% if p.email %}{{ p.email }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Biometric Mark 1</span><span class="data-val">{% if p.identification_mark_1 %}{{ p.identification_mark_1 }}{% else %}N/A{% endif %}</span></div>
+                    <div class="data-item"><span class="data-label">Biometric Mark 2</span><span class="data-val">{% if p.identification_mark_2 %}{{ p.identification_mark_2 }}{% else %}N/A{% endif %}</span></div>
+                </div>
+
+                <div style="display: flex; justify-content: center; margin-bottom: 30px;">
+                    <div style="font-size: 11px; font-weight: bold; letter-spacing: 1.5px; color: var(--c-blue); text-transform: uppercase; background: rgba(0, 123, 255, 0.05); padding: 10px 20px; border-radius: 20px; border: 1px solid var(--dim);">
+                        Validated Date & Time : <span style="color: var(--fg); opacity: 0.9; text-transform: none; letter-spacing: 1px; margin-left: 8px;">{% if p.date_time %}{{ p.date_time }}{% else %}N/A{% endif %}</span>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn btn-accept" onclick="confirmAction('accept', 'INF-{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.phone_full }}')">Verify & Anchor Node</button>
+                    <button class="btn btn-reject" onclick="confirmAction('reject', 'INF-{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.phone_full }}')">Reject Profile</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+    <script src="brain.js"></script>
+    <script>
+        let activeSearchMode = 'phone';
+        const phoneInput = document.querySelector("#phoneSearchInput");
+        const nameInput = document.getElementById("nameSearchInput");
+        const phoneSearchBox = document.getElementById("phoneSearchBox");
+        const nameSearchBox = document.getElementById("nameSearchBox");
+        const searchToggleBtn = document.getElementById("searchToggleBtn");
+
+        // Back button logic updated for Smart Edit Mode
+        document.getElementById('backBtn').onclick = function(e) {
+            e.preventDefault();
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('edit') === 'true') {
+                window.location.href = 'edit.html';
+            } else {
+                window.location.href = 'home.html';
+            }
+        };
+
+        const countryData = window.intlTelInputGlobals.getCountryData();
+        for (let i = 0; i < countryData.length; i++) {
+            countryData[i].name = countryData[i].name.split(' (')[0].trim().toUpperCase();
+        }
+
+        const iti = window.intlTelInput(phoneInput, {
+            separateDialCode: true,
+            initialCountry: "in", 
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js"
+        });
+
+        setTimeout(() => {
+            const data = iti.getSelectedCountryData();
+            if(data && data.name) {
+                const badge = document.getElementById('selectedCountryDisplay');
+                badge.innerText = data.name.toUpperCase();
+                badge.style.display = 'inline-block';
+            }
+        }, 1000);
+
+        phoneInput.addEventListener('countrychange', () => {
+            const data = iti.getSelectedCountryData();
+            if (data && data.name) {
+                const badge = document.getElementById('selectedCountryDisplay');
+                badge.innerText = data.name.toUpperCase();
+                badge.style.display = 'inline-block';
+                phoneInput.focus();
+                triggerSearch();
+            }
+        });
+
+        phoneInput.addEventListener('keypress', function(e) {
+            if (!/[0-9]/.test(e.key)) {
+                e.preventDefault();
+                return;
+            }
+            let maxDigits = 10;
+            const placeholder = this.getAttribute('placeholder') || '';
+            const digits = placeholder.replace(/\D/g, '').length;
+            if (digits > 0) maxDigits = digits;
+            
+            const currentDigits = this.value.replace(/\D/g, '').length;
+            if (currentDigits >= maxDigits) {
+                e.preventDefault();
+            }
+        });
+
+        phoneInput.addEventListener('input', function() {
+            let original = this.value;
+            let cleaned = original.replace(/[^0-9\s\-\(\)\+]/g, '');
+            if (original !== cleaned) {
+                this.value = cleaned;
+            }
+
+            let rawVal = this.value.replace(/\D/g, '');
+            if (rawVal.length > 0) {
+                searchToggleBtn.style.display = 'flex';
+            } else {
+                searchToggleBtn.style.display = 'none';
+            }
+            triggerSearch();
+        });
+
+        nameInput.addEventListener('input', triggerSearch);
+
+        function triggerSearch() {
+            const phoneTerm = phoneInput.value.replace(/\D/g, ''); 
+            const nameTerm = nameInput.value.toLowerCase().trim();
+            const clearBtn = document.getElementById('clearNameBtn');
+            const cards = document.querySelectorAll('.user-card');
+
+            if (nameTerm.length > 0) {
+                clearBtn.style.display = 'flex';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                const cardPhoneRaw = card.getAttribute('data-phone') || '';
+                const cardPhone = cardPhoneRaw.replace(/\D/g, ''); 
+                const cardName = card.getAttribute('data-name').toLowerCase();
+                
+                let phoneMatch = true;
+                if (phoneTerm.length > 0) {
+                    phoneMatch = cardPhone.includes(phoneTerm);
+                }
+                
+                let nameMatch = true;
+                if (nameTerm.length > 0) {
+                    nameMatch = cardName.includes(nameTerm);
+                }
+
+                if (phoneMatch && nameMatch) {
+                    card.style.display = "flex"; 
+                    visibleCount++;
+                } else {
+                    card.style.display = "none"; 
+                }
+            });
+
+            const noData = document.getElementById('noDataMessage');
+            if(visibleCount === 0) {
+                noData.classList.add('show');
+            } else {
+                noData.classList.remove('show');
+            }
+        }
+
+        function toggleSearchMode() {
+            if (activeSearchMode === 'phone') {
+                activeSearchMode = 'name';
+                phoneSearchBox.style.display = 'none';
+                nameSearchBox.style.display = 'flex';
+                nameInput.focus();
+            } else {
+                activeSearchMode = 'phone';
+                phoneSearchBox.style.display = 'flex';
+                nameSearchBox.style.display = 'none';
+                nameInput.value = '';
+                triggerSearch();
+                phoneInput.focus();
+            }
+        }
+
+        function clearNameSearch() {
+            nameInput.value = '';
+            triggerSearch();
+            toggleSearchMode(); 
+        }
+
+        function openDetailsModal(id) {
+            document.getElementById('modal-INF-' + id).classList.add('show');
+        }
+
+        function closeDetailsModal(id) {
+            document.getElementById('modal-INF-' + id).classList.remove('show');
+        }
+
+        function transitionAlertContent(newHtml, callback) {
+            const alertBox = document.querySelector('.inf-alert');
+            if(alertBox) {
+                alertBox.style.opacity = '0';
+                alertBox.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    alertBox.innerHTML = newHtml;
+                    alertBox.style.opacity = '1';
+                    alertBox.style.transform = 'translateY(0)';
+                    if(callback) callback();
+                }, 300);
+            }
+        }
+
+        function customConfirm(title, message, titleColor, confirmCallback) {
+            const overlay = document.createElement('div');
+            overlay.className = 'inf-overlay';
+            overlay.innerHTML = `
+                <div class="inf-alert" style="border-color: ${titleColor}; box-shadow: 0 10px 40px color-mix(in srgb, ${titleColor} 15%, transparent); transition: all 0.4s ease;">
+                    <h3 style="color: ${titleColor};">${title}</h3>
+                    <p style="margin-bottom: 0; font-size: 13px; line-height: 1.6; color: var(--fg); opacity: 0.8;">${message}</p>
+                    <div class="inf-confirm-btns">
+                        <button class="inf-btn-cancel" onclick="const o=this.closest('.inf-overlay');o.classList.remove('inf-show');setTimeout(()=>o.remove(),300)">Cancel</button>
+                        <button class="inf-btn-confirm" id="inf-confirm-ok" style="color: ${titleColor}; border-color: ${titleColor};" onmouseover="this.style.background='${titleColor}'; this.style.color='#000';" onmouseout="this.style.background='transparent'; this.style.color='${titleColor}';">Confirm</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.classList.add('inf-show'), 10);
+            
+            document.getElementById('inf-confirm-ok').onclick = function() {
+                if(confirmCallback) confirmCallback();
+            };
+        }
+
+        let otpTimerInterval;
+
+        function startOtpTimer() {
+            let timer = 300; 
+            const display = document.getElementById('otp-timer');
+            clearInterval(otpTimerInterval);
+            
+            otpTimerInterval = setInterval(function () {
+                let minutes = parseInt(timer / 60, 10);
+                let seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                
+                display.textContent = minutes + ":" + seconds;
+                
+                if (--timer < 0) {
+                    clearInterval(otpTimerInterval);
+                    display.textContent = "00:00";
+                    display.style.color = "var(--c-red)";
+                } else {
+                    display.style.color = "var(--c-yellow)";
+                }
+            }, 1000);
+        }
+
+        function showOtpModal(type, id, pName, pPhone) {
+            window.currentServerOtp = null;
+            const OTP_URL = '/api/send_otp/';
+            fetch(OTP_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({contact: pPhone})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    window.currentServerOtp = data.otp;
+                }
+            });
+
+            const newHtml = `
+                <h3 style="color: var(--c-blue); margin-bottom: 15px;">VERIFY MOBILE NUMBER</h3>
+                <p style="font-size: 13px; color: var(--fg); opacity: 0.8; margin-bottom: 20px;">An OTP has been sent to the registered mobile number. Please enter the OTP to verify and proceed.</p>
+                
+                <input type="text" id="otp-input-field" placeholder="ENTER 6-DIGIT OTP" maxlength="6" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);" style="width: 100%; box-sizing: border-box; background: rgba(0,123,255,0.05); border: 1px solid var(--c-blue); color: var(--fg); padding: 12px; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 10px; outline: none;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 12px; font-weight: bold; padding: 0 5px;">
+                    <span id="otp-timer" style="color: var(--c-yellow);">05:00</span>
+                    <span id="resend-otp-btn" style="color: var(--c-blue); cursor: pointer; text-decoration: underline;">Resend OTP</span>
+                </div>
+
+                <p id="otp-success-msg" style="color: var(--c-green); font-size: 11px; margin-top: -10px; margin-bottom: 15px; font-weight: bold; opacity: 0; transition: opacity 0.5s ease; height: 13px;">OTP RESENT SUCCESSFULLY</p>
+                <p id="otp-error" style="color: var(--c-red); font-size: 11px; margin-top: -10px; margin-bottom: 15px; display: none; font-weight: bold;">PLEASE ENTER A VALID 6-DIGIT OTP.</p>
+                
+                <div class="inf-confirm-btns">
+                    <button class="inf-btn-cancel" onclick="clearInterval(otpTimerInterval); const o=this.closest('.inf-overlay');o.classList.remove('inf-show');setTimeout(()=>o.remove(),300)">Cancel</button>
+                    <button class="inf-btn-confirm" id="verify-otp-btn" style="color: var(--c-green); border-color: var(--c-green);" onmouseover="this.style.background='var(--c-green)'; this.style.color='#000';" onmouseout="this.style.background='transparent'; this.style.color='var(--c-green)';">Verify & Proceed</button>
+                </div>
+            `;
+            
+            transitionAlertContent(newHtml, () => {
+                document.querySelector('.inf-alert').style.borderColor = 'var(--c-blue)';
+                document.querySelector('.inf-alert').style.boxShadow = '0 10px 40px rgba(0,123,255,0.2)';
+                startOtpTimer();
+                
+                document.getElementById('resend-otp-btn').onclick = function() {
+                    startOtpTimer();
+                    fetch(OTP_URL, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({contact: pPhone})
+                    }).then(res => res.json()).then(data => {
+                        if(data.status === 'success') window.currentServerOtp = data.otp;
+                    });
+                    const successMsg = document.getElementById('otp-success-msg');
+                    successMsg.style.opacity = '1';
+                    document.getElementById('otp-error').style.display = 'none';
+                    setTimeout(() => { successMsg.style.opacity = '0'; }, 3000);
+                };
+
+                document.getElementById('verify-otp-btn').onclick = function() {
+                    const otpVal = document.getElementById('otp-input-field').value.trim();
+                    const btn = this;
+                    
+                    if (!window.currentServerOtp || otpVal !== String(window.currentServerOtp)) {
+                        const errEl = document.getElementById('otp-error');
+                        errEl.innerText = "PLEASE ENTER THE VALID 6-DIGIT OTP.";
+                        errEl.style.display = 'block';
+                        document.getElementById('otp-input-field').style.borderColor = 'var(--c-red)';
+                        setTimeout(() => { document.getElementById('otp-input-field').style.borderColor = 'var(--c-blue)'; }, 1500);
+                        return;
+                    }
+                    
+                    document.getElementById('otp-error').style.display = 'none';
+                    document.getElementById('otp-input-field').style.borderColor = 'var(--c-blue)';
+
+                    btn.innerHTML = 'VERIFYING<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>';
+                    btn.style.pointerEvents = "none";
+                    btn.style.color = "#000";
+                    btn.style.background = "var(--c-yellow)";
+                    btn.style.borderColor = "var(--c-yellow)";
+
+                    setTimeout(() => {
+                        clearInterval(otpTimerInterval);
+                        executeAction(type, id, otpVal, pName, pPhone);
+                    }, 1500);
+                };
+            });
+        }
+
+        function executeAction(type, id, otpStr = '', pName = '', pPhone = '') {
+            let statusColor = type === 'accept' ? 'var(--c-green)' : 'var(--c-red)';
+            let loadingText = type === 'accept' ? 'VERIFYING<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>' : 'REJECTING<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>';
+            let loadingDesc = type === 'accept' 
+                ? 'Initiating cryptographic anchoring protocol.<br>Synchronizing node data to the decentralized ledger.<br>Please wait while the transaction is being verified.' 
+                : 'Initiating profile rejection protocol.<br>Removing node data from the verification queue.<br>Please wait while the profile is being discarded.';
+            
+            let spinnerBorderColor = type === 'accept' ? 'rgba(0, 200, 81, 0.2)' : 'rgba(255, 68, 68, 0.2)';
+
+            let loadingHtml = `
+                <div style="text-align: center;">
+                    <h3 style="color: ${statusColor}; margin-bottom: 10px; font-size: 16px; letter-spacing: 1px;">${loadingText}</h3>
+                    <p style="font-size: 12px; color: var(--fg); opacity: 0.8; margin-bottom: 25px; line-height: 1.6;">${loadingDesc}</p>
+                    <div class="loader-spinner" style="border: 3px solid ${spinnerBorderColor}; border-top-color: ${statusColor}; margin: 0 auto;"></div>
+                </div>`;
+            
+            let existingOverlay = document.querySelector('.inf-overlay');
+            if(existingOverlay) {
+                transitionAlertContent(loadingHtml, () => {
+                    document.querySelector('.inf-alert').style.borderColor = statusColor;
+                });
+            } else {
+                const overlay = document.createElement('div');
+                overlay.className = 'inf-overlay inf-show';
+                overlay.innerHTML = `<div class="inf-alert" style="border-color: ${statusColor};">${loadingHtml}</div>`;
+                document.body.appendChild(overlay);
+            }
+
+            fetch('/verification_action/', {
+                method: 'POST',
+                body: JSON.stringify({id: id, type: type, otp: otpStr}),
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(res => res.ok ? res.json().catch(() => ({})) : {})
+            .then(data => {
+                setTimeout(() => {
+                    let finalText = type === 'accept' ? 'VERIFIED' : 'REJECTED';
+                    let finalDesc = type === 'accept' ? 'Profile successfully saved to verification database and deleted from validation portal.' : 'Profile has been rejected and discarded.';
+                    
+                    let successHtml = `
+                        <h3 style="color: ${statusColor};">${finalText}</h3>
+                        <p style="margin-bottom: 0; font-size: 13px; color: var(--fg); opacity: 0.8;">${finalDesc}</p>
+                        <div class="inf-confirm-btns" style="margin-top: 20px;">
+                            <button class="inf-btn-confirm" id="final-ok-btn" style="width: 100%; color: ${statusColor}; border-color: ${statusColor};" onmouseover="this.style.background='${statusColor}'; this.style.color='#000';" onmouseout="this.style.background='transparent'; this.style.color='${statusColor}';">OK</button>
+                        </div>`;
+                        
+                    transitionAlertContent(successHtml, () => {
+                        document.getElementById('final-ok-btn').onclick = function() {
+                            const overlay = this.closest('.inf-overlay');
+                            overlay.classList.remove('inf-show');
+                            setTimeout(() => {
+                                overlay.remove();
+                                if (type === 'accept') {
+                                    let s = JSON.parse(localStorage.getItem('inf_settings')) || {};
+                                    s.verificationTargetName = pName;
+                                    s.verificationTargetPhone = pPhone;
+                                    localStorage.setItem('inf_settings', JSON.stringify(s));
+                                    
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    if (urlParams.get('edit') === 'true') {
+                                        window.location.href = 'edit.html';
+                                    } else {
+                                        window.location.href = 'verification2.html';
+                                    }
+                                } else {
+                                    window.location.reload(); 
+                                }
+                            }, 300);
+                        };
+                    });
+                }, 1500); 
+            })
+            .catch(() => {
+                setTimeout(() => {
+                    let finalText = type === 'accept' ? 'VERIFIED' : 'REJECTED';
+                    let finalDesc = type === 'accept' ? 'Profile successfully saved to verification database and deleted from validation portal.' : 'Profile has been rejected and discarded.';
+                    
+                    let successHtml = `
+                        <h3 style="color: ${statusColor};">${finalText}</h3>
+                        <p style="margin-bottom: 0; font-size: 13px; color: var(--fg); opacity: 0.8;">${finalDesc}</p>
+                        <div class="inf-confirm-btns" style="margin-top: 20px;">
+                            <button class="inf-btn-confirm" id="final-ok-btn" style="width: 100%; color: ${statusColor}; border-color: ${statusColor};" onmouseover="this.style.background='${statusColor}'; this.style.color='#000';" onmouseout="this.style.background='transparent'; this.style.color='${statusColor}';">OK</button>
+                        </div>`;
+                        
+                    transitionAlertContent(successHtml, () => {
+                        document.getElementById('final-ok-btn').onclick = function() {
+                            const overlay = this.closest('.inf-overlay');
+                            overlay.classList.remove('inf-show');
+                            setTimeout(() => {
+                                overlay.remove();
+                                if (type === 'accept') {
+                                    let s = JSON.parse(localStorage.getItem('inf_settings')) || {};
+                                    s.verificationTargetName = pName;
+                                    s.verificationTargetPhone = pPhone;
+                                    localStorage.setItem('inf_settings', JSON.stringify(s));
+                                    
+                                    const urlParams = new URLSearchParams(window.location.search);
+                                    if (urlParams.get('edit') === 'true') {
+                                        window.location.href = 'edit.html';
+                                    } else {
+                                        window.location.href = 'verification2.html';
+                                    }
+                                } else {
+                                    window.location.reload(); 
+                                }
+                            }, 300);
+                        };
+                    });
+                }, 1500);
+            });
+        }
+
+        function confirmAction(type, id, pName, pPhone) {
+            let title = "";
+            let msg = "";
+            let titleColor = "";
+            
+            if(type === 'accept') {
+                title = "CONFIRM VERIFICATION";
+                titleColor = "var(--c-green)";
+                msg = "Approving this profile will initiate the cryptographic anchoring protocol.<br>Ensure all details have been manually verified.<br>Are you sure you want to ACCEPT?";
+            } else if (type === 'reject') {
+                title = "LEGAL WARNING";
+                titleColor = "var(--c-red)";
+                msg = "Rejecting a legitimate citizen without proper investigation is a violation.<br>You will be held accountable for any false rejections.<br>Are you sure you want to REJECT?";
+            }
+
+            customConfirm(title, msg, titleColor, () => {
+                if (type === 'accept') {
+                    showOtpModal(type, id, pName, pPhone);
+                } else {
+                    executeAction(type, id, '', pName, pPhone);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

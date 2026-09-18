@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Infinity Identity - Verification Home</title>
+    <style>
+        :root, [data-theme="minimal-dark"] { --bg: #000000; --fg: #ffffff; --c-blue: #007bff; --c-red: #ff4444; --c-green: #00C851; --c-yellow: #ffbb33; --c-cyan: #00e5ff; --dim: rgba(0, 123, 255, 0.15); }
+        [data-theme="minimal-light"] { --bg: #ffffff; --fg: #000000; --c-blue: #0056b3; --c-red: #cc0000; --c-green: #007e33; --c-yellow: #ff8800; --c-cyan: #0099cc; --dim: rgba(0, 86, 179, 0.15); }
+        
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--bg) !important; 
+            color: var(--fg) !important; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            overflow: hidden; 
+            opacity: 0;
+            transition: background-color 0.5s ease, color 0.5s ease, opacity 1s ease-in-out;
+        }
+
+        /* --- TOP HEADER --- */
+        .top-header { position: fixed; top: clamp(20px, 5vw, 40px); left: clamp(5%, 5vw, 40px); right: clamp(5%, 5vw, 40px); z-index: 200; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+        
+        .header-left { display: flex; gap: 15px; align-items: center; pointer-events: auto; }
+        
+        .menu-btn { display: flex; align-items: center; justify-content: center; width: clamp(35px, 10vw, 45px); height: clamp(35px, 10vw, 45px); border-radius: 50%; background: color-mix(in srgb, var(--fg) 5%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); cursor: pointer; transition: all 0.3s ease; color: var(--fg); flex-shrink: 0; }
+        .menu-btn:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); border-color: var(--c-blue); color: var(--c-blue); transform: scale(1.05); box-shadow: 0 0 15px var(--dim); }
+        .menu-btn:active { transform: scale(0.95); }
+        .menu-btn svg { width: clamp(18px, 5vw, 22px); height: clamp(18px, 5vw, 22px); fill: currentColor; }
+
+        .brand-info { display: flex; flex-direction: column; gap: 4px; }
+        .brand-name { font-size: clamp(14px, 4vw, 20px); font-weight: bold; text-transform: uppercase; letter-spacing: clamp(2px, 1vw, 4px); opacity: 0.9; }
+        .live-time-wrapper { display: flex; align-items: center; gap: 6px; }
+        .live-time { font-size: clamp(10px, 3vw, 13px); font-weight: bold; letter-spacing: 1px; color: var(--c-blue); text-transform: uppercase; }
+        .live-date { font-size: clamp(9px, 2.5vw, 11px); font-weight: bold; letter-spacing: 1px; opacity: 0.6; text-transform: uppercase; }
+        .separator { opacity: 0.4; font-size: 10px; }
+
+        .header-right { pointer-events: auto; }
+        .notification-btn { display: flex; align-items: center; justify-content: center; width: clamp(35px, 10vw, 45px); height: clamp(35px, 10vw, 45px); border-radius: 50%; background: color-mix(in srgb, var(--fg) 5%, transparent); border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); cursor: pointer; transition: all 0.3s ease; color: var(--fg); text-decoration: none; position: relative; }
+        .notification-btn:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); border-color: var(--c-blue); color: var(--c-blue); transform: scale(1.05); }
+        .notification-btn:active { transform: scale(0.95); }
+        .notification-btn svg { width: clamp(18px, 5vw, 22px); height: clamp(18px, 5vw, 22px); fill: currentColor; }
+        
+        .notification-badge { position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; background: var(--c-red); border-radius: 10px; box-shadow: 0 0 5px var(--c-red); display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #fff; border: 1px solid var(--bg); }
+
+        /* --- SIDEBAR --- */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+        .sidebar-overlay.show { opacity: 1; pointer-events: auto; }
+
+        .sidebar { position: fixed; top: 0; left: 0; width: clamp(260px, 75vw, 320px); height: 100vh; background: rgba(5, 5, 8, 0.95); border-right: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); backdrop-filter: blur(20px); display: flex; flex-direction: column; z-index: 1000; transform: translateX(-100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+        .sidebar.open { transform: translateX(0); }
+
+        .brand-header { padding: 30px 20px; border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); display: flex; justify-content: space-between; align-items: center; }
+        .brand-title { font-size: 16px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; display: flex; align-items: center; gap: 12px; color: var(--fg); }
+        .brand-title svg { width: 22px; height: 22px; fill: var(--c-blue); }
+        .close-sidebar { background: transparent; border: none; color: var(--fg); opacity: 0.5; cursor: pointer; transition: 0.3s; padding: 5px; }
+        .close-sidebar:hover { opacity: 1; color: var(--c-red); transform: scale(1.1); }
+        .close-sidebar svg { width: 20px; height: 20px; fill: currentColor; }
+
+        .system-stats { padding: 25px 20px; border-bottom: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); font-size: 11px; line-height: 2.2; opacity: 0.8; text-transform: uppercase; letter-spacing: 1.5px; }
+        .system-stats strong { color: var(--c-blue); opacity: 1; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; background: var(--c-green); border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px var(--c-green); animation: blink 2s infinite; }
+
+        .sidebar-desc { flex-grow: 1; padding: 30px 20px; color: var(--fg); opacity: 0.6; font-size: 12px; line-height: 1.8; letter-spacing: 1px; }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid color-mix(in srgb, var(--fg) 10%, transparent); }
+        .settings-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; background: transparent; border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); border-radius: 8px; color: var(--c-blue); cursor: pointer; text-transform: uppercase; font-size: 12px; font-weight: bold; letter-spacing: 2px; transition: all 0.3s; }
+        .settings-btn:hover { border-color: var(--c-blue); background: color-mix(in srgb, var(--c-blue) 10%, transparent); transform: translateY(-2px); box-shadow: 0 5px 15px var(--dim); }
+
+        /* --- MAIN CONTENT --- */
+        .main-container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: clamp(100px, 15vh, 150px) 0; box-sizing: border-box; overflow: hidden; width: 100vw; }
+        
+        .section-head { margin-bottom: clamp(30px, 4vh, 40px); text-align: center; animation: fadeUp 0.8s ease; }
+        .section-head h2 { font-size: clamp(28px, 8vw, 42px); font-weight: bold; margin: 0; letter-spacing: 2px; line-height: 1.1; text-transform: uppercase; color: var(--fg); }
+        .section-head p { font-size: clamp(11px, 3vw, 14px); opacity: 0.5; margin: clamp(10px, 2vh, 15px) 0 0 0; letter-spacing: 2px; text-transform: uppercase; color: var(--c-blue); }
+
+        /* TABS & CARDS */
+        .tab-content { width: 100%; display: none; animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); justify-content: center; }
+        .tab-content.active { display: flex; }
+        
+        .big-card { width: clamp(320px, 90vw, 700px); min-height: clamp(220px, 25vh, 280px); margin: 0 auto; border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent); border-radius: clamp(16px, 4vw, 24px); padding: clamp(30px, 5vw, 45px); cursor: pointer; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, background-color 0.4s ease; position: relative; overflow: hidden; background: color-mix(in srgb, var(--fg) 5%, var(--bg)); backdrop-filter: blur(10px); display: flex; align-items: center; gap: clamp(20px, 4vw, 40px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-decoration: none; color: inherit; }
+
+        .big-card::after { content: ''; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%; background: color-mix(in srgb, var(--fg) 10%, transparent); transform: rotate(30deg); opacity: 0; }
+        @keyframes shine { 0% { left: -60%; opacity: 0; } 10% { opacity: 0.5; } 20% { left: 120%; opacity: 0; } 100% { left: 120%; opacity: 0; } }
+        
+        .card-local { border-color: color-mix(in srgb, var(--c-blue) 30%, transparent); }
+        .card-local.shining::after { animation: shine 3s infinite; }
+        .card-local:hover { border-color: var(--c-blue); background: color-mix(in srgb, var(--c-blue) 5%, var(--bg)); transform: translateY(-5px); box-shadow: 0 20px 50px color-mix(in srgb, var(--c-blue) 15%, transparent); }
+        .card-local .card-icon { fill: var(--c-blue); }
+        
+        .card-saved { border-color: color-mix(in srgb, var(--c-green) 30%, transparent); }
+        .card-saved:hover { border-color: var(--c-green); background: color-mix(in srgb, var(--c-green) 5%, var(--bg)); transform: translateY(-5px); box-shadow: 0 20px 50px color-mix(in srgb, var(--c-green) 15%, transparent); }
+        .card-saved .card-icon { fill: var(--c-green); }
+
+        .big-card:active { transform: scale(0.98) !important; }
+        .card-icon { width: clamp(50px, 10vw, 80px); height: clamp(50px, 10vw, 80px); flex-shrink: 0; opacity: 0.8; transition: opacity 0.3s; }
+        .big-card:hover .card-icon { opacity: 1; }
+        
+        .card-text { text-align: left; flex: 1; }
+        .card-text h3 { font-size: clamp(20px, 5vw, 28px); font-weight: bold; margin: 0 0 clamp(8px, 1.5vh, 12px) 0; letter-spacing: 2px; color: var(--fg); text-transform: uppercase; }
+        .card-text p { font-size: clamp(12px, 3vw, 14px); opacity: 0.7; margin: 0 0 15px 0; line-height: 1.6; color: var(--fg); letter-spacing: 0.5px; }
+
+        .card-details { padding-top: 15px; border-top: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); font-size: clamp(10px, 2.5vw, 12px); opacity: 0.8; display: flex; flex-direction: column; gap: 10px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        .detail-row { display: flex; justify-content: space-between; align-items: center; }
+
+        /* --- BOTTOM NAV --- */
+        .bottom-nav { position: fixed; bottom: clamp(20px, 5vh, 35px); left: 50%; transform: translateX(-50%); width: clamp(260px, 85%, 380px); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); border-radius: clamp(30px, 7vw, 45px); display: flex; padding: clamp(6px, 1.5vw, 10px); z-index: 100; box-shadow: 0 15px 45px rgba(0,0,0,0.9); }
+        .nav-btn { flex: 1; padding: clamp(14px, 3.5vh, 20px) 0; border-radius: clamp(25px, 6vw, 38px); display: flex; align-items: center; justify-content: center; gap: clamp(6px, 1.5vw, 10px); color: var(--fg); opacity: 0.4; cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); user-select: none; }
+        .nav-btn:hover { opacity: 0.8; }
+        .nav-btn.active { opacity: 1; background: color-mix(in srgb, var(--fg) 12%, transparent); color: var(--c-blue); transform: scale(1.03); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .nav-btn svg { width: clamp(20px, 5.5vw, 24px); height: clamp(20px, 5.5vw, 24px); fill: currentColor; transition: transform 0.4s; }
+        .nav-btn.active svg { transform: translateY(-2px); fill: var(--c-blue); }
+        .nav-btn span { font-size: clamp(10px, 2.8vw, 13px); font-weight: bold; text-transform: uppercase; letter-spacing: clamp(1px, 0.3vw, 1.5px); }
+        
+        .terminal-log { position: fixed; bottom: clamp(100px, 14vh, 120px); left: 50%; transform: translateX(-50%); width: 100%; z-index: 90; font-family: monospace; font-size: clamp(9px, 2vw, 11px); opacity: 0.4; text-transform: uppercase; letter-spacing: 2px; text-align: center; color: var(--c-blue); transition: opacity 0.4s; pointer-events: none; }
+
+        @keyframes blink { 0% { opacity: 0.4; } 100% { opacity: 1; box-shadow: 0 0 15px var(--c-green); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .big-card { flex-direction: column; align-items: flex-start; text-align: left; padding: 30px 25px; gap: 20px; }
+            .card-details { width: 100%; }
+            .nav-btn { flex-direction: column; gap: 5px; padding: clamp(12px, 3vh, 16px) 0; }
+            .nav-btn.active svg { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <div class="top-header">
+        <div class="header-left">
+            <div class="menu-btn" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24"><path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/></svg>
+            </div>
+            <div class="brand-info">
+                <div class="brand-name">Verification Node</div>
+                <div class="live-time-wrapper">
+                    <div class="live-time" id="liveTime">00:00:00</div>
+                    <div class="separator">|</div>
+                    <div class="live-date" id="liveDate">SYNCING...</div>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <!-- NOTIFICATION BUTTON -->
+            <div class="notification-btn" title="Notifications" onclick="smoothNavigate('notification.html')">
+                <svg viewBox="0 0 24 24"><path d="M21,19V20H3V19L5,17V11C5,7.9 7.03,5.17 10,4.29C10,4.19 10,4.1 10,4A2,2 0 0,1 12,2A2,2 0 0,1 14,4C14,4.1 14,4.19 14,4.29C16.97,5.17 19,7.9 19,11V17L21,19M14,21A2,2 0 0,1 12,23A2,2 0 0,1 10,21M19.75,3.19L18.33,4.61C20.04,6.3 21,8.6 21,11H23C23,8.07 21.84,5.25 19.75,3.19M1,11H3C3,8.6 3.96,6.3 5.67,4.61L4.25,3.19C2.16,5.25 1,8.07 1,11Z"/></svg>
+                <div class="notification-badge" id="notifBadge"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Section (Settings Only) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="brand-header">
+            <div class="brand-title">
+                <svg viewBox="0 0 24 24"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,5A3,3 0 0,1 15,8A3,3 0 0,1 12,11A3,3 0 0,1 9,8A3,3 0 0,1 12,5M17.13,17C15.92,18.85 14.11,20.24 12,20.92C9.89,20.24 8.08,18.85 6.87,17C6.53,16.5 6.24,16 6,15.47C6,13.82 8.71,12.47 12,12.47C15.29,12.47 17.96,13.82 17.96,15.47C17.73,16 17.44,16.5 17.13,17Z"/></svg>
+                Verification
+            </div>
+            <button class="close-sidebar" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
+            </button>
+        </div>
+        
+        <div class="system-stats">
+            <div><span class="status-dot"></span> <strong>Status:</strong> Secure & Active</div>
+            <div style="margin-top: 10px;"><strong>Clearance:</strong> Node Verification</div>
+        </div>
+
+        <div class="sidebar-desc">
+            <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: var(--c-blue); margin-bottom: 15px;"><path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,5A3,3 0 0,1 15,8A3,3 0 0,1 12,11A3,3 0 0,1 9,8A3,3 0 0,1 12,5M17.13,17C15.92,18.85 14.11,20.24 12,20.92C9.89,20.24 8.08,18.85 6.87,17C6.53,16.5 6.24,16 6,15.47C6,13.82 8.71,12.47 12,12.47C15.29,12.47 17.96,13.82 17.96,15.47C17.73,16 17.44,16.5 17.13,17Z"/></svg>
+            <p>This terminal is authorized exclusively for localized identity synchronization and secure node verification under the Infinity protocol.</p>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="settings-btn" onclick="directNavigate('settings.html')">
+                <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>
+                Node Settings
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="section-head">
+            <h2>Command Center</h2>
+            <p>Verification Node Protocols</p>
+        </div>
+        
+        <!-- TABS -->
+        <div id="tab-local" class="tab-content active">
+            <div class="big-card card-local shining" onclick="agreementNavigate('request.html')">
+                <svg class="card-icon" viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
+                <div class="card-text">
+                    <h3>Local Node</h3>
+                    <p>Initialize localized identity synchronization and secure node verification.</p>
+                    
+                    <div class="card-details" style="margin-top: 25px;">
+                        <div class="detail-row">
+                            <span>System Status:</span>
+                            <span style="color: var(--c-blue);">Ready to Verify</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Protocol:</span>
+                            <span>End-to-End Encrypted</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-saved" class="tab-content">
+            <div class="big-card card-saved" onclick="agreementNavigate('saved.html')">
+                <svg class="card-icon" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,19.93A8,8 0 0,0 4.06,13H11V19.93M13,19.93V13H19.94A8,8 0 0,0 13,19.93M19.94,11H13V4.06A8,8 0 0,0 19.94,11M11,4.06V11H4.06A8,8 0 0,0 11,4.06Z"/></svg>
+                <div class="card-text">
+                    <h3>Saved Nodes</h3>
+                    <p>Access the secure vault of previously verified and locally saved identity nodes.</p>
+                    
+                    <div class="card-details" style="margin-top: 25px;">
+                        <div class="detail-row">
+                            <span>Storage Area:</span>
+                            <span style="color: var(--c-green);">Secure Vault</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Access Level:</span>
+                            <span>Authorized</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <div class="terminal-log" id="termLog">> VERIFICATION NODE ACTIVE...</div>
+
+    <!-- BOTTOM NAV TABS -->
+    <div class="bottom-nav">
+        <div id="nav-local" class="nav-btn active" onclick="switchTab('local')">
+            <svg viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/></svg>
+            <span>Local Node</span>
+        </div>
+        <div id="nav-saved" class="nav-btn" onclick="switchTab('saved')">
+            <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,19.93A8,8 0 0,0 4.06,13H11V19.93M13,19.93V13H19.94A8,8 0 0,0 13,19.93M19.94,11H13V4.06A8,8 0 0,0 19.94,11M11,4.06V11H4.06A8,8 0 0,0 11,4.06Z"/></svg>
+            <span>Saved</span>
+        </div>
+    </div>
+
+    <script src="brain.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => { document.body.style.opacity = '1'; }, 100);
+            checkUnreadNotifs();
+        });
+
+        // 1. Goes to notification page
+        function smoothNavigate(url) {
+            document.body.style.opacity = '0';
+            setTimeout(() => { window.location.href = url; }, 1000);
+        }
+
+        // 2. Goes to Agreement -> Target Page
+        function agreementNavigate(targetPage) {
+            sessionStorage.setItem('securityTargetPage', targetPage);
+            document.body.style.opacity = '0';
+            setTimeout(() => { window.location.href = 'agreement.html'; }, 1000);
+        }
+
+        // 3. Goes directly to Target Page
+        function directNavigate(targetPage) {
+            document.body.style.opacity = '0';
+            setTimeout(() => { window.location.href = targetPage; }, 1000);
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.getElementById('nav-' + tabId).classList.add('active');
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            let seconds = now.getSeconds();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12; hours = hours ? hours : 12; 
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+            document.getElementById('liveTime').innerText = hours + ':' + minutes + ':' + seconds + ' ' + ampm;
+            document.getElementById('liveDate').innerText = now.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        const logs = [
+            "> VERIFICATION SYSTEM ONLINE...",
+            "> MONITORING FOR LOCAL NODES...",
+            "> ENCRYPTION MODULES STANDBY...",
+            "> VERIFYING SECURITY PROTOCOLS...",
+            "> SYNCHRONIZING CORE DATABASE...",
+            "> ALL SYSTEMS SECURE AND ACTIVE..."
+        ];
+        let logIndex = 0;
+        setInterval(() => {
+            const term = document.getElementById('termLog');
+            if(term) {
+                term.style.opacity = '0';
+                setTimeout(() => { 
+                    term.innerHTML = logs[logIndex]; 
+                    term.style.opacity = '0.5'; 
+                    logIndex = (logIndex + 1) % logs.length;
+                }, 400);
+            }
+        }, 4000);
+
+        function checkUnreadNotifs() {
+            const badge = document.getElementById('notifBadge');
+            let unreadCount = parseInt(localStorage.getItem('inf_ver_unread_notifs')) || 0; 
+            
+            if(unreadCount > 0) {
+                badge.style.display = 'flex';
+                badge.innerText = unreadCount;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

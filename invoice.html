@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Identity - Verification Invoice</title>
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --c-blue: #007bff; --c-green: #00C851; --c-yellow: #ffbb33; --c-red: #ff4444; }
+        
+        html { background-color: #000000; min-height: 100%; }
+        
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--bg) !important; 
+            color: var(--fg) !important; 
+            font-family: 'Segoe UI', -apple-system, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; 
+            user-select: none;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .container { width: 90%; max-width: 450px; text-align: center; margin: 40px auto; padding: 25px 20px; box-sizing: border-box; background: rgba(128,128,128,0.02); backdrop-filter: blur(10px); z-index: 10; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* Adjusted padding and font sizes slightly to fit neatly into A5 single page */
+        .invoice-area { 
+            padding: 30px 25px; 
+            background: #ffffff !important; 
+            color: #000000 !important;
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+        }
+        
+        .brand-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #555555; margin-bottom: 6px; }
+        h2 { font-weight: 900; margin: 0 0 12px 0; font-size: 18px; color: #000000; text-transform: uppercase; letter-spacing: 1px; }
+
+        .receipt-body { border-top: 2px dashed #cccccc; border-bottom: 2px dashed #cccccc; padding: 15px 0; margin-bottom: 0; text-align: left; }
+        
+        .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 11px; align-items: center; }
+        .row:last-child { margin-bottom: 0; }
+        
+        .label { color: #666666; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .value { font-weight: 800; color: #000000; letter-spacing: 0.5px; text-transform: uppercase; text-align: right; max-width: 60%; word-break: break-word; }
+        
+        .status-badge { background: rgba(0, 200, 81, 0.1); color: var(--c-green); padding: 5px 10px; border-radius: 6px; border: 1px solid var(--c-green); font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+
+        .total-row { display: flex; justify-content: space-between; padding-top: 15px; margin-top: 15px; align-items: center; }
+        .total-row .label { color: #000000; font-size: 13px; font-weight: 900; text-transform: uppercase; }
+        .total-row .value { color: var(--c-green); font-size: 22px; font-weight: 900; text-shadow: none; }
+
+        .tc-section { margin-top: 20px; font-size: 8px; color: #555555; text-align: justify; line-height: 1.5; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .strict-warning { color: var(--c-red) !important; font-weight: 900; margin-top: 8px; border: 1px dashed var(--c-red); padding: 8px; border-radius: 6px; background: rgba(255, 68, 68, 0.05); }
+
+        .auth-section { display: flex; justify-content: flex-end; align-items: flex-end; margin-top: 25px; position: relative; height: 100px; width: 100%; box-sizing: border-box; }
+        
+        .signature-block { text-align: center; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 140px; }
+        
+        .signature-img { width: 100px; height: auto; margin-bottom: 2px; mix-blend-mode: multiply; transform: rotate(-3deg); pointer-events: none; }
+        
+        .signature-label-line { border-top: 2px solid #000000; width: 100%; margin-bottom: 5px; }
+        .founder-name { font-size: 10px; font-weight: 900; color: #000000; letter-spacing: 1px; text-transform: uppercase; margin: 0; }
+        .founder-title { font-size: 8px; font-weight: 800; color: #555555; letter-spacing: 0.5px; text-transform: uppercase; margin: 2px 0; }
+        .auth-label { font-size: 7px; font-weight: bold; color: #777777; letter-spacing: 0.5px; text-transform: uppercase; margin: 0; }
+        
+        .seal { position: absolute; right: 120px; bottom: 20px; width: 65px; height: 60px; border: 2px solid #dc3545; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #dc3545; font-weight: 900; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; transform: rotate(-15deg); opacity: 0.8; z-index: 1; pointer-events: none; }
+        .seal-inner { border: 2px dashed #dc3545; width: 55px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
+
+        .btn-download { width: 100%; padding: 16px; background: transparent; color: var(--c-blue); border: 1px solid var(--c-blue); border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; transition: all 0.4s ease; text-transform: uppercase; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
+        .btn-download:hover:not(.success):not(.processing) { background: var(--c-blue); border-color: var(--c-blue); color: #000000; box-shadow: 0 5px 20px rgba(0, 123, 255, 0.3); }
+        .btn-download:active { transform: scale(0.97); }
+        .btn-download svg { width: 20px; height: 20px; fill: currentColor; transition: fill 0.4s ease; }
+        
+        .btn-download.success { background: var(--c-green) !important; border-color: var(--c-green) !important; color: #000 !important; pointer-events: none; box-shadow: 0 5px 20px rgba(0, 200, 81, 0.4); }
+
+        .btn-home { width: 100%; padding: 16px; background: transparent; color: var(--c-blue); border: 1px solid var(--c-blue); border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; transition: all 0.4s ease; text-transform: uppercase; letter-spacing: 2px; display: none; }
+        .btn-home.show { display: block; animation: slideUp 0.4s ease; }
+        .btn-home:hover { background: var(--c-blue) !important; color: #000000 !important; box-shadow: 0 5px 20px rgba(0, 123, 255, 0.3); }
+        .btn-home:active { transform: scale(0.97); }
+
+        .wave-dots { display: inline-block; margin-left: 2px; }
+        .wave-dots span { display: inline-block; animation: wave 1.2s infinite ease-in-out; }
+        .wave-dots span:nth-child(1) { animation-delay: 0s; }
+        .wave-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .wave-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Changed invoiceArea to easily fit inside one A5 PDF page -->
+        <div id="invoiceArea" class="invoice-area">
+            <div class="brand-title">INFINITY IDENTITY REGISTRY</div>
+            <h2>Official Tax Invoice</h2>
+
+            <div class="receipt-body">
+                <div class="row">
+                    <span class="label">Receipt No</span>
+                    <span class="value" id="recNo">FETCHING...</span>
+                </div>
+                <div class="row">
+                    <span class="label">Transaction ID</span>
+                    <span class="value" id="tmpNodeId" style="font-family: monospace; color: var(--c-blue); letter-spacing: 1px;">FETCHING...</span>
+                </div>
+                <div class="row">
+                    <span class="label">Date</span>
+                    <span class="value" id="recDate">--/--/----</span>
+                </div>
+                <div class="row">
+                    <span class="label">Billed To</span>
+                    <span class="value" id="recName">FETCHING...</span>
+                </div>
+                <div class="row">
+                    <span class="label">Description</span>
+                    <span class="value">NODE VERIFICATION FEE</span>
+                </div>
+                <div class="row">
+                    <span class="label">Status</span>
+                    <span class="status-badge" id="recStatus">PAID</span>
+                </div>
+                <div class="total-row">
+                    <span class="label">Total Amount</span>
+                    <span class="value" id="recAmount">₹ 0.00</span>
+                </div>
+            </div>
+
+            <div class="tc-section">
+                <strong>OFFICIAL DECLARATION:</strong> This document serves as a cryptographically verified proof of Node Verification within the Infinity Identity Registry. The biometric and geospatial parameters associated with this transaction have been securely synchronized and irreversibly stored. This receipt is digitally generated by the Infinity Secure Gateway and validated by the network authority. Subject to Infinity Identity Network Terms & Conditions.
+                
+                <div class="strict-warning">
+                    <strong>CRITICAL SECURITY WARNING:</strong> THIS DOCUMENT IS HIGHLY CONFIDENTIAL. DO NOT DISCARD, THROW AMONG TRASH, OR LEAVE UNATTENDED. DO NOT SHARE OR FORWARD THIS TAX INVOICE VIA UNSCURED NETWORKS TO ANY THIRD PARTY. IMMUTABLE CORE ENCRYPTION KEY MAPPED TO THIS SPECIFIC RECEIPT NODE.
+                </div>
+            </div>
+
+            <div class="auth-section">
+                <div class="seal">
+                    <div class="seal-inner">VERI<br>FIED</div>
+                </div>
+                <div class="signature-block">
+                    <!-- നിനക്ക് വേണ്ട ഒറിജിനൽ സിഗ്നേച്ചർ ഇമേജ് ഇവിടെ കൊടുക്കാം -->
+                    <img src="signature.png.jpeg" alt="Signature" class="signature-img">
+                    <div class="signature-label-line"></div>
+                    <div class="founder-name">AL AMEER</div>
+                    <div class="founder-title">FOUNDER</div>
+                    <div class="auth-label">AUTHORIZED SIGNATORY</div>
+                </div>
+            </div>
+
+        </div>
+
+        <button class="btn-download" id="btnDownload" onclick="downloadBill()">
+            <svg viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg>
+            Download PDF
+        </button>
+
+        <button class="btn-home" id="btnNext" onclick="goToDashboard()">Proceed to Dashboard</button>
+    </div>
+
+    <!-- PDF ജനറേറ്റ് ചെയ്യാൻ വേണ്ടിയുള്ള ലൈബ്രറി -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="brain.js"></script>
+    <script>
+        const GET_INVOICE_URL = '/api/get_latest_invoice/';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => { document.body.style.opacity = '1'; }, 100);
+            fetchRealInvoiceData();
+        });
+
+        async function fetchRealInvoiceData() {
+            try {
+                // വാലിഡേറ്റർ പോർട്ടലിന്റെ ജാങ്കോ ഡാറ്റാബേസിൽ നിന്ന് ഇൻവോയ്സ് ഡീറ്റെയിൽസ് എടുക്കുന്നു
+                const response = await fetch(GET_INVOICE_URL);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    document.getElementById('recNo').innerText = result.receipt_no;
+                    document.getElementById('tmpNodeId').innerText = result.order_id;
+                    document.getElementById('recDate').innerText = result.date;
+                    document.getElementById('recName').innerText = result.billed_to;
+                    document.getElementById('recAmount').innerText = result.amount;
+                    document.getElementById('recStatus').innerText = result.payment_status;
+                } else {
+                    console.error("Failed to fetch backend invoice:", result.message);
+                }
+            } catch (error) {
+                console.error("Network error while fetching invoice:", error);
+            }
+        }
+
+        function goToDashboard() {
+            document.body.style.opacity = '0';
+            setTimeout(() => { window.location.href = 'home.html'; }, 1000);
+        }
+
+        function downloadBill() {
+            const btn = document.getElementById('btnDownload');
+            const nextBtn = document.getElementById('btnNext');
+            const invoice = document.getElementById('invoiceArea');
+            
+            btn.classList.add('processing');
+            btn.innerHTML = 'DOWNLOADING<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>';
+            btn.style.pointerEvents = 'none';
+            btn.style.background = 'var(--c-yellow)';
+            btn.style.borderColor = 'var(--c-yellow)';
+            btn.style.color = '#000000';
+
+            setTimeout(() => {
+                const opt = {
+                    margin: 0,
+                    filename: 'Infinity_Verification_Receipt.pdf',
+                    image: { type: 'jpeg', quality: 1 },
+                    // Adjusted scale and format slightly to ensure perfectly single page fitting
+                    html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+                };
+                
+                html2pdf().set(opt).from(invoice).save().then(() => {
+                    btn.classList.remove('processing');
+                    btn.innerHTML = 'DOWNLOADED ✔';
+                    btn.classList.add('success');
+                    
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                    
+                    nextBtn.classList.add('show');
+                }).catch(err => {
+                    alert("Download Failed. Please check your internet connection.");
+                    btn.classList.remove('processing');
+                    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/></svg> Download PDF';
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--c-blue)';
+                    btn.style.borderColor = 'var(--c-blue)';
+                    btn.style.pointerEvents = 'auto';
+                });
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

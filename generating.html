@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Infinity Identity - Generating ID</title>
+    
+    <style>
+        :root { --bg: #000000; --fg: #ffffff; --c-blue: #007bff; --c-red: #ff4444; --c-green: #00C851; --c-yellow: #ffbb33; }
+        
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--bg) !important; 
+            color: var(--fg) !important; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            overflow-x: hidden; overflow-y: auto; 
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container { 
+            width: 90%; 
+            max-width: 600px; 
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .brand-title { font-size: clamp(10px, 2.5vw, 12px); font-weight: bold; text-transform: uppercase; letter-spacing: 2px; opacity: 0.5; margin-bottom: 8px; color: var(--c-blue); }
+        h2 { font-weight: bold; margin-top: 0; margin-bottom: 5px; font-size: clamp(22px, 6vw, 32px); text-transform: uppercase; letter-spacing: 1px; }
+        p.desc { font-size: clamp(12px, 3vw, 14px); opacity: 0.7; margin-bottom: clamp(25px, 6vw, 35px); line-height: 1.5; }
+
+        .card-box { 
+            border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); 
+            border-radius: 16px; 
+            padding: clamp(30px, 6vw, 50px); 
+            background: color-mix(in srgb, var(--fg) 3%, transparent); 
+            backdrop-filter: blur(10px); 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.5s ease;
+        }
+
+        /* ID Display Styling */
+        .id-display-box {
+            width: 100%;
+            height: 80px;
+            background: color-mix(in srgb, var(--bg) 80%, transparent);
+            border: 2px solid var(--c-blue);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            box-shadow: 0 0 15px color-mix(in srgb, var(--c-blue) 30%, transparent);
+            transition: all 0.5s ease;
+        }
+
+        .id-text {
+            font-family: monospace;
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: bold;
+            color: var(--c-blue);
+            letter-spacing: 5px;
+            text-shadow: 0 0 10px color-mix(in srgb, var(--c-blue) 50%, transparent);
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        .id-display-box.success {
+            border-color: var(--c-green);
+            box-shadow: 0 0 20px color-mix(in srgb, var(--c-green) 40%, transparent);
+        }
+
+        .id-text.success {
+            color: var(--c-green);
+            text-shadow: 0 0 15px color-mix(in srgb, var(--c-green) 60%, transparent);
+        }
+
+        /* Button Styling */
+        .btn-main { 
+            width: 100%; 
+            height: 55px; 
+            padding: 0 16px; 
+            background: transparent; 
+            color: var(--c-blue); 
+            border: 1px solid var(--c-blue); 
+            border-radius: 12px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: all 0.4s ease; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        .btn-main:hover:not(.processing) { 
+            background: var(--c-blue); 
+            color: #ffffff; 
+            box-shadow: 0 5px 15px color-mix(in srgb, var(--c-blue) 40%, transparent); 
+        }
+        .btn-main:active { transform: scale(0.97); }
+        .btn-main.processing { pointer-events: none; }
+
+        /* Warning Box */
+        .warning-box {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            background: color-mix(in srgb, var(--c-yellow) 10%, transparent);
+            border: 1px solid var(--c-yellow);
+            border-radius: 12px;
+            padding: 0 20px;
+            margin-top: 0;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+        .warning-box.show {
+            max-height: 250px;
+            opacity: 1;
+            padding: 20px;
+            margin-top: 25px;
+        }
+        .warning-title {
+            color: var(--c-yellow);
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .warning-title svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .warning-desc {
+            color: var(--fg);
+            font-size: 12px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Next Button Wrapper */
+        .next-btn-wrapper {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            width: 100%;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 0;
+        }
+        .next-btn-wrapper.show {
+            max-height: 100px;
+            opacity: 1;
+            margin-top: 25px;
+        }
+
+        .btn-complete {
+            border-color: var(--c-green);
+            color: var(--c-green);
+        }
+        .btn-complete:hover:not(.processing) {
+            background: var(--c-green);
+            color: #000;
+            box-shadow: 0 5px 15px color-mix(in srgb, var(--c-green) 40%, transparent);
+        }
+
+        .wave-dots { display: inline-block; margin-left: 2px; }
+        .wave-dots span { display: inline-block; animation: wave 1.2s infinite ease-in-out; }
+        .wave-dots span:nth-child(1) { animation-delay: 0s; }
+        .wave-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .wave-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="brand-title">FINAL PROTOCOL</div>
+        <h2>IDENTITY GENERATION</h2>
+        <p class="desc">The system is ready to compile and assign a unique 12-digit Infinity Identity for the verified node.</p>
+
+        <div class="card-box">
+            
+            <div class="id-display-box" id="idDisplayBox">
+                <div class="id-text" id="idText">XXXX XXXX XXXX</div>
+            </div>
+
+            <button class="btn-main" id="btnGenerate" onclick="startGeneration()">
+                GENERATE ID
+            </button>
+
+            <div class="warning-box" id="warningBox">
+                <div class="warning-title">
+                    <svg viewBox="0 0 24 24"><path d="M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"/></svg>
+                    SECURITY WARNING
+                </div>
+                <div class="warning-desc">
+                    <ul style="text-align: left; padding-left: 20px; margin-top: 5px; margin-bottom: 0;">
+                        <li style="margin-bottom: 5px;">Do not share this Verification ID with anyone unnecessarily.</li>
+                        <li style="margin-bottom: 5px;">Keep this ID strictly confidential to prevent identity fraud.</li>
+                        <li>Infinity officials will never ask for this ID over phone calls.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="next-btn-wrapper" id="nextBtnWrapper">
+                <button class="btn-main btn-complete" id="btnProceed" onclick="finishProcess()">
+                    CONTINUE TO DASHBOARD
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Smooth 1-second fade in when page loads
+            setTimeout(() => { document.body.style.opacity = '1'; }, 100);
+        });
+
+        function startGeneration() {
+            const btn = document.getElementById('btnGenerate');
+            const idText = document.getElementById('idText');
+            const idDisplayBox = document.getElementById('idDisplayBox');
+            
+            // Lock button and show loading state
+            btn.classList.add('processing');
+            btn.style.background = 'var(--c-yellow)';
+            btn.style.borderColor = 'var(--c-yellow)';
+            btn.style.color = '#000';
+            btn.innerHTML = 'GENERATING<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>';
+            
+            idText.style.color = 'var(--c-yellow)';
+            idText.style.textShadow = '0 0 10px color-mix(in srgb, var(--c-yellow) 50%, transparent)';
+            idDisplayBox.style.borderColor = 'var(--c-yellow)';
+            idDisplayBox.style.boxShadow = '0 0 15px color-mix(in srgb, var(--c-yellow) 30%, transparent)';
+
+            // Random generation time between 5 and 10 seconds (minimum 5s)
+            const generateDuration = Math.floor(Math.random() * 5000) + 5000; 
+
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+            
+            // The rapid character changing animation (Decoding effect)
+            const scrambleInterval = setInterval(() => {
+                let scrambledId = "";
+                for(let i = 0; i < 12; i++) {
+                    if (i > 0 && i % 4 === 0) scrambledId += " ";
+                    scrambledId += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                idText.innerText = scrambledId;
+            }, 60);
+
+            // After the random duration, stop animation and show final result
+            setTimeout(() => {
+                clearInterval(scrambleInterval);
+
+                // Generate a random 12-digit permanent number
+                let finalId = "";
+                for(let i = 0; i < 12; i++) {
+                    finalId += Math.floor(Math.random() * 10).toString();
+                }
+                // Format with spaces: 1234 5678 9012
+                const formattedId = finalId.match(/.{1,4}/g).join(' ');
+                
+                // SAVE ID TO SESSION STORAGE
+                sessionStorage.setItem('temporaryId', formattedId);
+
+                idText.innerText = formattedId;
+                
+                // Change display to Green Success State
+                idText.className = 'id-text success';
+                idText.style.color = ''; 
+                idText.style.textShadow = '';
+                
+                idDisplayBox.className = 'id-display-box success';
+                idDisplayBox.style.borderColor = '';
+                idDisplayBox.style.boxShadow = '';
+
+                // Hide generate button smoothly
+                btn.style.transition = "all 0.5s ease";
+                btn.style.opacity = "0";
+                btn.style.maxHeight = "0";
+                btn.style.padding = "0";
+                btn.style.margin = "0";
+                btn.style.border = "none";
+                setTimeout(() => { btn.style.display = "none"; }, 500);
+
+                // Show Warning Box and Proceed Button smoothly
+                document.getElementById('warningBox').classList.add('show');
+                document.getElementById('nextBtnWrapper').classList.add('show');
+
+            }, generateDuration);
+        }
+
+        function finishProcess() {
+            const btn = document.getElementById('btnProceed');
+            btn.classList.add('processing');
+            btn.style.background = 'var(--c-green)';
+            btn.style.borderColor = 'var(--c-green)';
+            btn.style.color = '#000';
+            btn.innerHTML = 'COMPLETING<span class="wave-dots"><span>.</span><span>.</span><span>.</span></span>';
+
+            // 1-second smooth fade out before redirection
+            setTimeout(() => {
+                document.body.style.opacity = '0';
+                setTimeout(() => {
+                    window.location.href = 'completed.html';
+                }, 1000);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
